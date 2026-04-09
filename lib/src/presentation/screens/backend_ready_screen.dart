@@ -148,31 +148,52 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
       _isLoading = true;
     });
 
-    final reports = await widget.reportService.loadReports();
-    if (!mounted) {
-      return;
-    }
+    try {
+      final reports = await widget.reportService.loadReports();
+      if (!mounted) {
+        return;
+      }
 
-    setState(() {
-      _reports = reports;
-      _isLoading = false;
-    });
+      setState(() {
+        _reports = reports;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _message = 'Error cargando informes: $error';
+      });
+    }
   }
 
   Future<void> _createDraftReport() async {
-    final draft = widget.reportService.createEmptyReport();
-    await widget.reportService.saveReport(draft);
+    try {
+      final draft = widget.reportService.createEmptyReport();
+      await widget.reportService.saveReport(draft);
 
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _message =
+            'Se creo un informe base con UUID ${draft.uuid}. Luego podemos conectarlo a la plantilla visual.';
+      });
+
+      await _reload();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _message = 'Error creando borrador: $error';
+      });
     }
-
-    setState(() {
-      _message =
-          'Se creo un informe base con UUID ${draft.uuid}. Luego podemos conectarlo a la plantilla visual.';
-    });
-
-    await _reload();
   }
 
   Future<void> _syncPending() async {
@@ -181,17 +202,28 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
       _message = null;
     });
 
-    final result = await widget.reportService.syncPendingReports();
-    if (!mounted) {
-      return;
+    try {
+      final result = await widget.reportService.syncPendingReports();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSyncing = false;
+        _message = _buildSyncMessage(result);
+      });
+
+      await _reload();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSyncing = false;
+        _message = 'Error sincronizando: $error';
+      });
     }
-
-    setState(() {
-      _isSyncing = false;
-      _message = _buildSyncMessage(result);
-    });
-
-    await _reload();
   }
 
   String _buildSyncMessage(SyncBatchResult result) {
@@ -207,4 +239,3 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
     return '$day/$month/${value.year}';
   }
 }
-

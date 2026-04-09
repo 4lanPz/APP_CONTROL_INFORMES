@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'bootstrap/app_bootstrap.dart';
-import 'presentation/screens/backend_ready_screen.dart';
+import 'presentation/screens/reports_home_screen.dart';
 
 class MaintenanceReportsApp extends StatelessWidget {
   const MaintenanceReportsApp({
@@ -23,11 +23,10 @@ class MaintenanceReportsApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: BackendReadyScreen(
+      home: ReportsHomeScreen(
         reportService: bootstrap.reportService,
         config: bootstrap.config,
       ),
     );
   }
 }
-

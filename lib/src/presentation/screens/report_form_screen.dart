@@ -23,6 +23,7 @@ class ReportFormScreen extends StatefulWidget {
 
 class _ReportFormScreenState extends State<ReportFormScreen> {
   final ImagePicker _imagePicker = ImagePicker();
+  final Set<String> _invalidFields = <String>{};
 
   late MaintenanceReport _workingReport;
   late DateTime _serviceDate;
@@ -172,7 +173,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar informe' : 'Nuevo informe'),
+        title: Text(_isEditing ? 'Editar formulario' : 'Nuevo formulario'),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -194,8 +195,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          _buildHeaderCard(),
-          const SizedBox(height: 16),
           _buildSectionCard(
             title: 'Datos generales',
             children: [
@@ -237,11 +236,13 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _locationController,
                 label: 'Ubicacion / sede',
+                fieldKey: 'location',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _hourMeterController,
                 label: 'Horometro actual',
+                fieldKey: 'hour_meter',
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -253,31 +254,37 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _engineBrandController,
                 label: 'Marca del motor',
+                fieldKey: 'engine_brand',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _engineModelController,
                 label: 'Modelo del motor',
+                fieldKey: 'engine_model',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _alternatorBrandController,
                 label: 'Marca del alternador',
+                fieldKey: 'alternator_brand',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _powerController,
                 label: 'Potencia (kVA/kW)',
+                fieldKey: 'power',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _serialNumberController,
                 label: 'Serie del equipo',
+                fieldKey: 'serial_number',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _manufactureYearController,
                 label: 'Anio de fabricacion',
+                fieldKey: 'manufacture_year',
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -297,36 +304,42 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _voltageL1Controller,
                 label: 'Voltaje L1',
+                fieldKey: 'voltage_l1',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _voltageL2Controller,
                 label: 'Voltaje L2',
+                fieldKey: 'voltage_l2',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _voltageL3Controller,
                 label: 'Voltaje L3',
+                fieldKey: 'voltage_l3',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _frequencyController,
                 label: 'Frecuencia (Hz)',
+                fieldKey: 'frequency_hz',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _oilPressureController,
                 label: 'Presion de aceite (PSI)',
+                fieldKey: 'oil_pressure_psi',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _temperatureController,
                 label: 'Temperatura (C)',
+                fieldKey: 'temperature_c',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
@@ -350,6 +363,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _activitiesController,
                 label: 'Descripcion de actividades / repuestos utilizados',
+                fieldKey: 'activities',
                 maxLines: 4,
               ),
             ],
@@ -361,6 +375,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _observationsController,
                 label: 'Observaciones y recomendaciones',
+                fieldKey: 'observations',
                 maxLines: 4,
               ),
             ],
@@ -372,22 +387,26 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               _buildTextField(
                 controller: _technicianNameController,
                 label: 'Nombre del tecnico',
+                fieldKey: 'technician_name',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _technicianIdController,
                 label: 'Identificacion del tecnico',
+                fieldKey: 'technician_identification',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _clientNameController,
                 label: 'Nombre del responsable / cliente',
+                fieldKey: 'client_name',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _clientRoleController,
                 label: 'Cargo del responsable / cliente',
+                fieldKey: 'client_role',
               ),
             ],
           ),
@@ -409,27 +428,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _isEditing ? 'Informe existente' : 'Nuevo informe real',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text('UUID: ${_workingReport.uuid}'),
-            const SizedBox(height: 4),
-            Text('Estado actual: ${_workingReport.syncStatus.label}'),
-          ],
-        ),
       ),
     );
   }
@@ -459,6 +457,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
+    required String fieldKey,
     int maxLines = 1,
     TextInputType? keyboardType,
   }) {
@@ -471,7 +470,13 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
+        errorText: _hasFieldError(fieldKey) ? 'Campo obligatorio' : null,
       ),
+      onChanged: (value) {
+        if (value.trim().isNotEmpty) {
+          _clearFieldError(fieldKey);
+        }
+      },
     );
   }
 
@@ -526,6 +531,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           _buildTextField(
             controller: _checklistObservationControllers[index],
             label: 'Observacion',
+            fieldKey: 'checklist_observation_$index',
             maxLines: 2,
           ),
         ],
@@ -540,6 +546,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }) {
     final isBusy = _photoBeingPicked == type;
     final hasImage = path.trim().isNotEmpty && File(path).existsSync();
+    final hasError = _hasFieldError(_photoFieldKey(type));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,7 +564,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
+              color: hasError
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.outlineVariant,
+              width: hasError ? 1.6 : 1,
             ),
           ),
           child: hasImage
@@ -581,6 +591,15 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           Text(
             path,
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ] else if (hasError) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Selecciona esta foto.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 12,
+            ),
           ),
         ],
       ],
@@ -634,6 +653,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         _beforePhotoPath = updatedReport.photos.beforePath;
         _afterPhotoPath = updatedReport.photos.afterPath;
       });
+      _clearFieldError(_photoFieldKey(type));
     } catch (error) {
       if (!mounted) {
         return;
@@ -654,40 +674,24 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<void> _saveReport() async {
     final report = _buildReportFromFields();
     final errors = widget.reportService.validateReport(report);
+    final invalidFieldKeys = _collectInvalidFieldKeys(report);
 
     if (errors.isNotEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Completa el informe'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: errors
-                      .map(
-                        (error) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text('- $error'),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
+      setState(() {
+        _invalidFields
+          ..clear()
+          ..addAll(invalidFieldKeys);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Revisa los campos marcados en rojo.'),
+        ),
       );
       return;
     }
+
+    _invalidFields.clear();
 
     setState(() {
       _isSaving = true;
@@ -765,6 +769,98 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         afterPath: _afterPhotoPath,
       ),
     );
+  }
+
+  Set<String> _collectInvalidFieldKeys(MaintenanceReport report) {
+    final invalidFields = <String>{};
+
+    if (report.location.trim().isEmpty) {
+      invalidFields.add('location');
+    }
+    if (report.hourMeter.trim().isEmpty) {
+      invalidFields.add('hour_meter');
+    }
+    if (report.equipment.engineBrand.trim().isEmpty) {
+      invalidFields.add('engine_brand');
+    }
+    if (report.equipment.engineModel.trim().isEmpty) {
+      invalidFields.add('engine_model');
+    }
+    if (report.equipment.alternatorBrand.trim().isEmpty) {
+      invalidFields.add('alternator_brand');
+    }
+    if (report.equipment.power.trim().isEmpty) {
+      invalidFields.add('power');
+    }
+    if (report.equipment.serialNumber.trim().isEmpty) {
+      invalidFields.add('serial_number');
+    }
+    if (report.equipment.manufactureYear.trim().isEmpty) {
+      invalidFields.add('manufacture_year');
+    }
+    if (report.tests.voltageL1.trim().isEmpty) {
+      invalidFields.add('voltage_l1');
+    }
+    if (report.tests.voltageL2.trim().isEmpty) {
+      invalidFields.add('voltage_l2');
+    }
+    if (report.tests.voltageL3.trim().isEmpty) {
+      invalidFields.add('voltage_l3');
+    }
+    if (report.tests.frequencyHz.trim().isEmpty) {
+      invalidFields.add('frequency_hz');
+    }
+    if (report.tests.oilPressurePsi.trim().isEmpty) {
+      invalidFields.add('oil_pressure_psi');
+    }
+    if (report.tests.temperatureC.trim().isEmpty) {
+      invalidFields.add('temperature_c');
+    }
+    if (report.activitiesAndParts.trim().isEmpty) {
+      invalidFields.add('activities');
+    }
+    if (report.observationsAndRecommendations.trim().isEmpty) {
+      invalidFields.add('observations');
+    }
+    if (report.technician.name.trim().isEmpty) {
+      invalidFields.add('technician_name');
+    }
+    if (report.technician.identification.trim().isEmpty) {
+      invalidFields.add('technician_identification');
+    }
+    if (report.clientContact.name.trim().isEmpty) {
+      invalidFields.add('client_name');
+    }
+    if (report.clientContact.role.trim().isEmpty) {
+      invalidFields.add('client_role');
+    }
+    if (report.photos.beforePath.trim().isEmpty) {
+      invalidFields.add(_photoFieldKey(ReportPhotoType.before));
+    }
+    if (report.photos.afterPath.trim().isEmpty) {
+      invalidFields.add(_photoFieldKey(ReportPhotoType.after));
+    }
+
+    for (var index = 0; index < report.checklist.length; index++) {
+      if (report.checklist[index].state != InspectionState.notApplicable &&
+          report.checklist[index].observation.trim().isEmpty) {
+        invalidFields.add('checklist_observation_$index');
+      }
+    }
+
+    return invalidFields;
+  }
+
+  bool _hasFieldError(String fieldKey) => _invalidFields.contains(fieldKey);
+
+  void _clearFieldError(String fieldKey) {
+    if (_invalidFields.remove(fieldKey)) {
+      setState(() {});
+    }
+  }
+
+  String _photoFieldKey(ReportPhotoType type) {
+    return type == ReportPhotoType.before ? 'before_photo' : 'after_photo';
   }
 
   String _formatDate(DateTime value) {

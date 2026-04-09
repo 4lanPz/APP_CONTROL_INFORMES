@@ -54,7 +54,8 @@ class ReportValidator {
     }
 
     for (final entry in report.checklist) {
-      if (entry.observation.trim().isEmpty) {
+      if (entry.state != InspectionState.notApplicable &&
+          entry.observation.trim().isEmpty) {
         errors.add(
           'Cada item del checklist debe incluir observacion: ${entry.system}.',
         );
@@ -80,4 +81,3 @@ class ReportValidator {
     return errors;
   }
 }
-

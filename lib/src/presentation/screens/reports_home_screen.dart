@@ -23,6 +23,7 @@ class ReportsHomeScreen extends StatefulWidget {
 class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   bool _isLoading = true;
   bool _isSyncing = false;
+  String? _pdfGeneratingUuid;
   String? _message;
   List<MaintenanceReport> _reports = const [];
 
@@ -121,13 +122,12 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     required int syncedCount,
     required int errorCount,
   }) {
-    final statusText = widget.config.canUseSupabase
-        ? 'Supabase configurado'
-        : 'Supabase pendiente';
+    final isLocalReady = true;
+    final isOnlineReady = widget.config.canUseSupabase;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -135,32 +135,55 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
               'Estado general',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            const SizedBox(height: 12),
+            Row(
               children: [
-                _buildStatChip(
-                  icon: Icons.schedule,
-                  label: '$pendingCount pendientes',
-                  color: const Color(0xFFF0B429),
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Pendientes',
+                    value: '$pendingCount',
+                    color: const Color(0xFFF0B429),
+                  ),
                 ),
-                _buildStatChip(
-                  icon: Icons.cloud_done,
-                  label: '$syncedCount enviados',
-                  color: const Color(0xFF1F8F5F),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Enviados',
+                    value: '$syncedCount',
+                    color: const Color(0xFF1F8F5F),
+                  ),
                 ),
-                _buildStatChip(
-                  icon: Icons.error_outline,
-                  label: '$errorCount con error',
-                  color: const Color(0xFFC0392B),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Con error',
+                    value: '$errorCount',
+                    color: const Color(0xFFC0392B),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              'Almacenamiento local activo. $statusText.',
-              style: Theme.of(context).textTheme.bodyMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildBaseStatus(
+                    title: 'Estado base local',
+                    isReady: isLocalReady,
+                    successLabel: 'Correcto',
+                    errorLabel: 'Fallando',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBaseStatus(
+                    title: 'Estado base online',
+                    isReady: isOnlineReady,
+                    successLabel: 'Correcto',
+                    errorLabel: 'Pendiente',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -178,14 +201,84 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     );
   }
 
-  Widget _buildStatChip({
-    required IconData icon,
-    required String label,
+  Widget _buildMiniStat({
+    required String title,
+    required String value,
     required Color color,
   }) {
-    return Chip(
-      avatar: Icon(icon, size: 18, color: color),
-      label: Text(label),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBaseStatus({
+    required String title,
+    required bool isReady,
+    required String successLabel,
+    required String errorLabel,
+  }) {
+    final color = isReady ? const Color(0xFF1F8F5F) : const Color(0xFFC0392B);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                isReady ? Icons.check_circle : Icons.cancel,
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isReady ? successLabel : errorLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -253,25 +346,75 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
           ...reports.map(
             (report) => Card(
               margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                onTap: () => _openExistingReport(report),
-                title: Text(
-                  report.location.trim().isEmpty
-                      ? 'Informe ${report.uuid.substring(0, 8)}'
-                      : report.location,
-                ),
-                subtitle: Text(
-                  'Tecnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}\n'
-                  'Fecha: ${_formatDate(report.serviceDate)}\n'
-                  'Actualizado: ${_formatDateTime(report.updatedAt)}',
-                ),
-                isThreeLine: true,
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStatusBadge(report.syncStatus),
-                    const SizedBox(height: 6),
-                    const Icon(Icons.chevron_right),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                report.location.trim().isEmpty
+                                    ? 'Informe ${report.uuid.substring(0, 8)}'
+                                    : report.location,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Tecnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}',
+                              ),
+                              Text(
+                                'Fecha: ${_formatDate(report.serviceDate)}',
+                              ),
+                              Text(
+                                'Actualizado: ${_formatDateTime(report.updatedAt)}',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildStatusBadge(report.syncStatus),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _openExistingReport(report),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Editar'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _pdfGeneratingUuid == report.uuid
+                                ? null
+                                : () => _generatePdf(report),
+                            icon: _pdfGeneratingUuid == report.uuid
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.picture_as_pdf_outlined),
+                            label: Text(
+                              _pdfGeneratingUuid == report.uuid
+                                  ? 'Generando...'
+                                  : 'Generar PDF',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -400,6 +543,42 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         _isSyncing = false;
         _message = 'Error sincronizando: $error';
       });
+    }
+  }
+
+  Future<void> _generatePdf(MaintenanceReport report) async {
+    setState(() {
+      _pdfGeneratingUuid = report.uuid;
+    });
+
+    try {
+      final file = await widget.reportService.generatePdf(report);
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF generado correctamente: ${file.path}'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo generar el PDF: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _pdfGeneratingUuid = null;
+        });
+      }
     }
   }
 

@@ -1,13 +1,17 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../domain/models/maintenance_report.dart';
 import 'report_file_service.dart';
 
 class ReportPdfService {
   const ReportPdfService(this._fileService);
+
+  static const _templateAssetPath = 'Formulario_base.pdf';
 
   final ReportFileService _fileService;
 
@@ -23,6 +27,105 @@ class ReportPdfService {
     final logoImage = await _loadOptionalImage(logoPath);
     final beforeImage = await _loadOptionalImage(report.photos.beforePath);
     final afterImage = await _loadOptionalImage(report.photos.afterPath);
+    final templateBackground = await _loadTemplateBackground();
+
+    document.addPage(
+      pw.Page(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.zero,
+          buildBackground: templateBackground == null
+              ? null
+              : (context) => pw.FullPage(
+                    ignoreMargins: true,
+                    child: pw.Image(
+                      templateBackground,
+                      fit: pw.BoxFit.fill,
+                    ),
+                  ),
+        ),
+        build: (context) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(22),
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(14),
+              decoration: pw.BoxDecoration(
+                color: const PdfColor(1, 1, 1, 0.92),
+                border: pw.Border.all(
+                  color: PdfColor.fromHex('#184A45'),
+                  width: 1,
+                ),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(report, logoImage),
+                  pw.SizedBox(height: 10),
+                  _buildCompactSectionTitle('Datos generales'),
+                  _buildCompactRow(
+                    leftLabel: 'Fecha',
+                    leftValue: _formatDate(report.serviceDate),
+                    rightLabel: 'Tipo',
+                    rightValue: report.maintenanceType.label,
+                  ),
+                  _buildCompactRow(
+                    leftLabel: 'Ubicacion',
+                    leftValue: report.location,
+                    rightLabel: 'Horometro',
+                    rightValue: report.hourMeter,
+                  ),
+                  pw.SizedBox(height: 8),
+                  _buildCompactSectionTitle('Equipo'),
+                  _buildCompactRow(
+                    leftLabel: 'Marca motor',
+                    leftValue: report.equipment.engineBrand,
+                    rightLabel: 'Modelo motor',
+                    rightValue: report.equipment.engineModel,
+                  ),
+                  _buildCompactRow(
+                    leftLabel: 'Marca alternador',
+                    leftValue: report.equipment.alternatorBrand,
+                    rightLabel: 'Potencia',
+                    rightValue: report.equipment.power,
+                  ),
+                  _buildCompactRow(
+                    leftLabel: 'Serie',
+                    leftValue: report.equipment.serialNumber,
+                    rightLabel: 'Anio',
+                    rightValue: report.equipment.manufactureYear,
+                  ),
+                  pw.SizedBox(height: 8),
+                  _buildCompactSectionTitle('Pruebas'),
+                  _buildCompactRow(
+                    leftLabel: 'Voltajes',
+                    leftValue:
+                        'L1 ${report.tests.voltageL1} | L2 ${report.tests.voltageL2} | L3 ${report.tests.voltageL3}',
+                    rightLabel: 'Frecuencia',
+                    rightValue: '${report.tests.frequencyHz} Hz',
+                  ),
+                  _buildCompactRow(
+                    leftLabel: 'Presion aceite',
+                    leftValue: '${report.tests.oilPressurePsi} PSI',
+                    rightLabel: 'Temperatura',
+                    rightValue: '${report.tests.temperatureC} C',
+                  ),
+                  _buildCompactRow(
+                    leftLabel: 'Ruidos / vibraciones',
+                    leftValue:
+                        report.tests.hasAbnormalNoiseOrVibration ? 'Si' : 'No',
+                    rightLabel: 'Estado sync',
+                    rightValue: report.syncStatus.label,
+                  ),
+                  pw.SizedBox(height: 8),
+                  _buildCompactSectionTitle('Checklist de inspeccion'),
+                  _buildChecklistTable(report.checklist),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
 
     document.addPage(
       pw.MultiPage(
@@ -30,73 +133,20 @@ class ReportPdfService {
         margin: const pw.EdgeInsets.all(24),
         build: (context) {
           return [
-            _buildHeader(report, logoImage),
-            pw.SizedBox(height: 12),
-            _buildSectionTitle('Datos generales'),
-            _buildTwoColumnRow(
-              leftLabel: 'Fecha',
-              leftValue: _formatDate(report.serviceDate),
-              rightLabel: 'Tipo',
-              rightValue: report.maintenanceType.label,
-            ),
-            _buildTwoColumnRow(
-              leftLabel: 'Ubicacion',
-              leftValue: report.location,
-              rightLabel: 'Horometro',
-              rightValue: report.hourMeter,
+            _buildSectionTitle('Actividades y repuestos'),
+            _buildParagraph(
+              'Descripcion de actividades / repuestos',
+              report.activitiesAndParts,
             ),
             pw.SizedBox(height: 10),
-            _buildSectionTitle('Equipo'),
-            _buildTwoColumnRow(
-              leftLabel: 'Marca motor',
-              leftValue: report.equipment.engineBrand,
-              rightLabel: 'Modelo motor',
-              rightValue: report.equipment.engineModel,
-            ),
-            _buildTwoColumnRow(
-              leftLabel: 'Marca alternador',
-              leftValue: report.equipment.alternatorBrand,
-              rightLabel: 'Potencia',
-              rightValue: report.equipment.power,
-            ),
-            _buildTwoColumnRow(
-              leftLabel: 'Serie',
-              leftValue: report.equipment.serialNumber,
-              rightLabel: 'Anio',
-              rightValue: report.equipment.manufactureYear,
-            ),
-            pw.SizedBox(height: 10),
-            _buildSectionTitle('Checklist'),
-            _buildChecklistTable(report.checklist),
-            pw.SizedBox(height: 10),
-            _buildSectionTitle('Pruebas'),
-            _buildTwoColumnRow(
-              leftLabel: 'Voltajes',
-              leftValue:
-                  'L1 ${report.tests.voltageL1} / L2 ${report.tests.voltageL2} / L3 ${report.tests.voltageL3}',
-              rightLabel: 'Frecuencia',
-              rightValue: report.tests.frequencyHz,
-            ),
-            _buildTwoColumnRow(
-              leftLabel: 'Presion aceite',
-              leftValue: report.tests.oilPressurePsi,
-              rightLabel: 'Temperatura',
-              rightValue: report.tests.temperatureC,
-            ),
-            _buildSingleLine(
-              'Ruidos o vibraciones anormales',
-              report.tests.hasAbnormalNoiseOrVibration ? 'Si' : 'No',
-            ),
-            pw.SizedBox(height: 10),
-            _buildSectionTitle('Actividades y recomendaciones'),
-            _buildParagraph('Actividades / repuestos', report.activitiesAndParts),
+            _buildSectionTitle('Observaciones y recomendaciones'),
             _buildParagraph(
               'Observaciones / recomendaciones',
               report.observationsAndRecommendations,
             ),
             pw.SizedBox(height: 10),
             _buildSectionTitle('Validacion'),
-            _buildTwoColumnRow(
+            _buildCompactRow(
               leftLabel: 'Tecnico',
               leftValue:
                   '${report.technician.name} (${report.technician.identification})',
@@ -104,17 +154,17 @@ class ReportPdfService {
               rightValue:
                   '${report.clientContact.name} (${report.clientContact.role})',
             ),
-            pw.SizedBox(height: 10),
-            _buildSectionTitle('Fotos'),
+            pw.SizedBox(height: 12),
+            _buildSectionTitle('Evidencia fotografica'),
             _buildPhotosRow(beforeImage, afterImage),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 18),
             _buildSignatureRow(),
           ];
         },
       ),
     );
 
-    final outputPath = await _fileService.buildPdfOutputPath(report.uuid);
+    final outputPath = await _fileService.buildPdfOutputPath(report);
     final file = File(outputPath);
     await file.writeAsBytes(await document.save());
     return file;
@@ -129,8 +179,8 @@ class ReportPdfService {
       children: [
         if (logoImage != null)
           pw.Container(
-            width: 72,
-            height: 72,
+            width: 58,
+            height: 58,
             margin: const pw.EdgeInsets.only(right: 12),
             child: pw.Image(logoImage, fit: pw.BoxFit.contain),
           ),
@@ -141,17 +191,38 @@ class ReportPdfService {
               pw.Text(
                 'Informe de mantenimiento de grupo electrogeno',
                 style: pw.TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 4),
-              pw.Text('UUID: ${report.uuid}'),
-              pw.Text('Estado: ${report.syncStatus.label}'),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'UUID: ${report.uuid}',
+                style: const pw.TextStyle(fontSize: 8.5),
+              ),
+              pw.Text(
+                'Plantilla base: Formulario_base.pdf',
+                style: const pw.TextStyle(fontSize: 8.5),
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  pw.Widget _buildCompactSectionTitle(String title) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      color: PdfColor.fromHex('#DDE9E5'),
+      child: pw.Text(
+        title,
+        style: pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
     );
   }
 
@@ -170,28 +241,29 @@ class ReportPdfService {
     );
   }
 
-  pw.Widget _buildTwoColumnRow({
+  pw.Widget _buildCompactRow({
     required String leftLabel,
     required String leftValue,
     required String rightLabel,
     required String rightValue,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(top: 8),
+      padding: const pw.EdgeInsets.only(top: 6),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Expanded(child: _buildSingleLine(leftLabel, leftValue)),
-          pw.SizedBox(width: 16),
-          pw.Expanded(child: _buildSingleLine(rightLabel, rightValue)),
+          pw.Expanded(child: _buildCompactLine(leftLabel, leftValue)),
+          pw.SizedBox(width: 12),
+          pw.Expanded(child: _buildCompactLine(rightLabel, rightValue)),
         ],
       ),
     );
   }
 
-  pw.Widget _buildSingleLine(String label, String value) {
+  pw.Widget _buildCompactLine(String label, String value) {
     return pw.RichText(
       text: pw.TextSpan(
+        style: const pw.TextStyle(fontSize: 8.5),
         children: [
           pw.TextSpan(
             text: '$label: ',
@@ -214,7 +286,7 @@ class ReportPdfService {
             label,
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
-          pw.SizedBox(height: 3),
+          pw.SizedBox(height: 4),
           pw.Text(value.trim().isEmpty ? '-' : value),
         ],
       ),
@@ -245,14 +317,14 @@ class ReportPdfService {
     ];
 
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(top: 8),
+      padding: const pw.EdgeInsets.only(top: 6),
       child: pw.Table(
         border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.5),
         columnWidths: const {
-          0: pw.FlexColumnWidth(1.2),
+          0: pw.FlexColumnWidth(1.1),
           1: pw.FlexColumnWidth(2.2),
-          2: pw.FlexColumnWidth(1),
-          3: pw.FlexColumnWidth(2),
+          2: pw.FlexColumnWidth(0.9),
+          3: pw.FlexColumnWidth(1.8),
         },
         children: rows,
       ),
@@ -261,11 +333,11 @@ class ReportPdfService {
 
   pw.Widget _tableCell(String value, {bool isHeader = false}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
+      padding: const pw.EdgeInsets.all(4),
       child: pw.Text(
         value.trim().isEmpty ? '-' : value,
         style: pw.TextStyle(
-          fontSize: 9,
+          fontSize: 7.6,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
       ),
@@ -340,6 +412,29 @@ class ReportPdfService {
     );
   }
 
+  Future<pw.MemoryImage?> _loadTemplateBackground() async {
+    try {
+      final templateData = await rootBundle.load(_templateAssetPath);
+      final templateBytes = templateData.buffer.asUint8List(
+        templateData.offsetInBytes,
+        templateData.lengthInBytes,
+      );
+
+      await for (final page in Printing.raster(
+        templateBytes,
+        pages: const [0],
+        dpi: 144,
+      )) {
+        final pngBytes = await page.toPng();
+        return pw.MemoryImage(pngBytes);
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
   Future<pw.MemoryImage?> _loadOptionalImage(String? path) async {
     if (path == null || path.trim().isEmpty) {
       return null;
@@ -360,4 +455,3 @@ class ReportPdfService {
     return '$day/$month/${value.year}';
   }
 }
-

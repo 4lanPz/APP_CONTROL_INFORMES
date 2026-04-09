@@ -12,7 +12,7 @@ La app debe permitir:
 - generar un PDF del informe con los datos ingresados
 - el usuario toma fotos normalmente con su celular y luego adjunta 2 imágenes desde la galería
 - permitir editar informes ya creados
-- dejar el sistema preparado para sincronizar posteriormente los datos en formato JSON a una base de datos online cuando se defina la mejor opción
+- dejar el sistema preparado para sincronizar posteriormente los datos en formato JSON con Supabase
 
 ---
 
@@ -29,7 +29,7 @@ La app debe permitir:
   - foto después
 - visualización de historial de informes
 - manejo de estado de sincronización
-- estructura lista para sincronización futura de JSON
+- estructura lista para sincronización de JSON con Supabase
 
 ### No incluye por ahora
 - login o autenticación
@@ -65,7 +65,7 @@ La app debe permitir:
    - se actualiza el JSON
    - se actualizan las rutas de fotos si fueron reemplazadas
    - el estado vuelve a `pending_sync`
-9. Cuando se defina una base de datos online y exista conexión, el JSON podrá sincronizarse.
+9. Cuando exista conexión y se habilite el módulo de sincronización, el JSON podrá enviarse a Supabase.
 
 ---
 
@@ -90,12 +90,14 @@ La app debe permitir:
 ## Manejo de imágenes
 - selector de imágenes desde galería en Flutter
 
-## Sincronización futura
-- envío de JSON por API REST o integración con la base online que se defina más adelante
+## Sincronización online
+- envío de JSON hacia Supabase
+- integración mediante SDK oficial de Supabase para Flutter o por API REST si fuera necesario
 
-## Backend / almacenamiento online futuro
-- aún no definido
-- la app debe quedar preparada para sincronizar JSON cuando ya se decida la mejor base de datos o servicio online
+## Backend / almacenamiento online definido
+- Supabase
+- la app debe quedar preparada para sincronizar el JSON de informes hacia Supabase cuando haya conectividad
+- en la V1 la sincronización puede quedar lista a nivel de estructura aunque no necesariamente activada en la primera entrega
 
 ---
 
@@ -113,7 +115,7 @@ La app debe permitir:
 - Las fotos no se envían a ninguna base online en la V1.
 - El PDF se genera solo localmente.
 - El PDF no se almacena en ninguna base de datos.
-- El JSON sí debe quedar listo para futura sincronización.
+- El JSON sí debe quedar listo para sincronización con Supabase.
 - No habrá numeración secuencial visible para el usuario.
 - Internamente cada informe se identifica por UUID.
 - Todo informe debe poder editarse.
@@ -335,7 +337,7 @@ Para la V1, como mínimo usar:
 Reglas:
 - todo informe nuevo queda como `pending_sync`
 - todo informe editado vuelve a `pending_sync`
-- solo cuando la sincronización futura sea exitosa cambia a `synced`
+- solo cuando la sincronización con Supabase sea exitosa cambia a `synced`
 
 ---
 
@@ -398,6 +400,8 @@ Reglas:
   "fecha_actualizacion": "2026-04-07T15:30:00",
   "fecha_sync": null
 }
+```
+
 ## 12. Reglas del PDF
 - El PDF debe basarse visualmente en el formato - proporcionado por el cliente.
 - Debe incluir logo.
@@ -423,10 +427,11 @@ Reglas:
 - La sincronización enviará solo JSON.
 - No se envían fotos en la V1.
 - No se envía el PDF en la V1.
-- Aún no está definida la base de datos online final.
-- La app debe quedar preparada para integrar posteriormente una opción online.
-- Cuando se defina esa opción, el JSON deberá enviarse al servicio o base seleccionada.
-- Si la sincronización es exitosa, el informe cambia a synced.
+- La base de datos online definida es Supabase.
+- La app debe quedar preparada para integrar la sincronización con Supabase desde el inicio.
+- El JSON deberá enviarse a Supabase cuando exista conexión y se implemente el flujo de sincronización.
+- Si la sincronización es exitosa, el informe cambia a `synced`.
+- Si la sincronización falla, el informe puede quedar en `sync_error`.
 ## 15. Prioridades de desarrollo
 ### Fase 1
 - estructura del proyecto Flutter
@@ -440,7 +445,7 @@ Reglas:
 - generación local de PDF
 - compartir/exportar PDF
 ### Fase 3
-- sincronización futura de JSON
+- integración de sincronización JSON con Supabase
 - control de estados
 - mejoras visuales
 ## 16. Resultado esperado de la V1
@@ -453,4 +458,4 @@ guardar todo localmente
 adjuntar 2 fotos desde galería
 generar un PDF formal localmente
 compartir o exportar el PDF para impresión
-dejar el registro listo para sincronización futura del JSON
+dejar el registro listo para sincronización con Supabase

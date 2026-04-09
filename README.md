@@ -1,5 +1,3 @@
-# APP_CONTROL_INFORMES
-
 # App Móvil de Informes de Mantenimiento de Grupo Electrógeno
 
 ## 1. Objetivo del proyecto
@@ -12,9 +10,11 @@ La app debe permitir:
 - guardar la información localmente en el dispositivo
 - funcionar sin internet
 - generar un PDF del informe con los datos ingresados
-- tomar y guardar una foto localmente
+- el usuario toma fotos normalmente con su celular y luego adjunta 2 imágenes desde la galería
 - permitir editar informes ya creados
-- sincronizar posteriormente los datos en formato JSON a un backend cuando exista conexión a internet
+- dejar el sistema preparado para sincronizar posteriormente los datos en formato JSON a una base de datos online cuando se defina la mejor opción
+
+---
 
 ## 2. Alcance de la versión 1
 
@@ -23,18 +23,21 @@ La app debe permitir:
 - formulario de mantenimiento
 - almacenamiento local
 - edición de informes
-- generación de PDF
-- captura o selección de 1 foto
+- generación local de PDF
+- selección de 2 fotos desde galería:
+  - foto antes
+  - foto después
 - visualización de historial de informes
 - manejo de estado de sincronización
-- sincronización futura de JSON a servidor
+- estructura lista para sincronización futura de JSON
 
 ### No incluye por ahora
 - login o autenticación
 - usuarios reales
-- firma digital dentro de la app
-- envío de imágenes al backend
-- envío del PDF al backend
+- captura de foto con cámara dentro de la app
+- envío de imágenes a una base de datos online
+- envío del PDF a una base de datos online
+- almacenamiento del PDF en una base de datos
 - panel web administrativo
 - numeración secuencial formal de informes
 
@@ -45,21 +48,24 @@ La app debe permitir:
 1. El usuario abre la app.
 2. Selecciona "Nuevo informe".
 3. Llena el formulario completo.
-4. Adjunta 1 foto.
+4. Adjunta 2 fotos desde la galería del celular:
+   - foto antes
+   - foto después
 5. Guarda el informe.
 6. La app:
    - genera un UUID para el informe
    - guarda el JSON localmente
-   - guarda la foto localmente con el nombre del UUID
-   - genera el PDF localmente
-   - guarda la ruta local del PDF
+   - registra las rutas locales de ambas fotos
    - deja el estado del informe como `pending_sync`
-7. Si el usuario edita el informe:
+7. Si el usuario desea exportar o imprimir:
+   - la app genera el PDF localmente bajo demanda
+   - permite compartirlo o exportarlo
+   - el PDF no se almacena en ninguna base de datos
+8. Si el usuario edita el informe:
    - se actualiza el JSON
-   - se regenera el PDF
-   - si cambia la foto, se reemplaza la foto local
+   - se actualizan las rutas de fotos si fueron reemplazadas
    - el estado vuelve a `pending_sync`
-8. Cuando haya internet, el JSON podrá sincronizarse con un backend.
+9. Cuando se defina una base de datos online y exista conexión, el JSON podrá sincronizarse.
 
 ---
 
@@ -82,14 +88,14 @@ La app debe permitir:
 - librería de PDF para Flutter
 
 ## Manejo de imágenes
-- image_picker o cámara nativa desde Flutter
+- selector de imágenes desde galería en Flutter
 
 ## Sincronización futura
-- envío de JSON por API REST
+- envío de JSON por API REST o integración con la base online que se defina más adelante
 
-## Backend futuro
-- FastAPI + PostgreSQL
-- este backend no forma parte de la versión 1 inicial, pero la app debe quedar preparada para sincronización posterior
+## Backend / almacenamiento online futuro
+- aún no definido
+- la app debe quedar preparada para sincronizar JSON cuando ya se decida la mejor base de datos o servicio online
 
 ---
 
@@ -98,9 +104,15 @@ La app debe permitir:
 - Toda la información del formulario es obligatoria por ahora.
 - El campo de observaciones y recomendaciones será un solo campo unido.
 - El técnico no inicia sesión; escribe manualmente su nombre e identificación.
-- Solo se permite 1 foto por informe.
-- La foto se guarda localmente, no se envía al backend en la V1.
-- El PDF se genera localmente.
+- Solo se permiten 2 fotos por informe.
+- Las fotos se seleccionan desde la galería del dispositivo.
+- Las fotos son:
+  - una foto antes
+  - una foto después
+- Las fotos se guardan localmente y se usan en el PDF.
+- Las fotos no se envían a ninguna base online en la V1.
+- El PDF se genera solo localmente.
+- El PDF no se almacena en ninguna base de datos.
 - El JSON sí debe quedar listo para futura sincronización.
 - No habrá numeración secuencial visible para el usuario.
 - Internamente cada informe se identifica por UUID.
@@ -197,11 +209,17 @@ Campo:
 - Nombre del responsable / cliente
 - Cargo del responsable / cliente
 
-## 7.8 Foto
-- 1 foto obligatoria
-- debe guardarse localmente
-- el archivo de foto debe llamarse con el UUID del informe
-- ejemplo: `b7a1c1f4-7e90-4c8c-9f5f-0f8d5cb7d0d1.jpg`
+## 7.8 Fotos
+Campos:
+- Foto antes
+- Foto después
+
+Reglas:
+- ambas son obligatorias
+- se seleccionan desde galería
+- se guardan localmente
+- se incluyen en el PDF
+- no se envían a la base online por ahora
 
 ---
 
@@ -222,7 +240,7 @@ Secciones:
 - Actividades / Repuestos
 - Observaciones y Recomendaciones
 - Validación
-- Foto
+- Fotos
 
 ## 8.3 Pantalla de detalle / resumen
 Acciones:
@@ -230,6 +248,7 @@ Acciones:
 - Editar informe
 - Generar PDF
 - Compartir PDF
+- Exportar PDF
 
 ## 8.4 Pantalla de historial
 Mostrar listado con:
@@ -238,7 +257,7 @@ Mostrar listado con:
 - ubicación
 - estado de sincronización
 - acceso a editar
-- acceso a ver/compartir PDF
+- acceso a generar/compartir PDF
 
 ---
 
@@ -290,9 +309,8 @@ Lista de objetos con:
 - responsable_cargo
 
 ### Archivos
-- foto_uuid_nombre_archivo
-- foto_ruta_local
-- pdf_ruta_local
+- foto_antes_ruta_local
+- foto_despues_ruta_local
 
 ### Control
 - estado_sync
@@ -317,7 +335,7 @@ Para la V1, como mínimo usar:
 Reglas:
 - todo informe nuevo queda como `pending_sync`
 - todo informe editado vuelve a `pending_sync`
-- solo cuando la sincronización sea exitosa cambia a `synced`
+- solo cuando la sincronización futura sea exitosa cambia a `synced`
 
 ---
 
@@ -371,15 +389,68 @@ Reglas:
     "nombre": "Carlos Mena",
     "cargo": "Jefe de local"
   },
-  "foto": {
-    "uuid_nombre_archivo": "b7a1c1f4-7e90-4c8c-9f5f-0f8d5cb7d0d1.jpg",
-    "ruta_local": "/ruta/local/foto/b7a1c1f4-7e90-4c8c-9f5f-0f8d5cb7d0d1.jpg"
-  },
-  "pdf": {
-    "ruta_local": "/ruta/local/pdf/b7a1c1f4-7e90-4c8c-9f5f-0f8d5cb7d0d1.pdf"
+  "fotos": {
+    "antes_ruta_local": "/ruta/local/fotos/antes_b7a1c1f4.jpg",
+    "despues_ruta_local": "/ruta/local/fotos/despues_b7a1c1f4.jpg"
   },
   "estado_sync": "pending_sync",
   "fecha_creacion": "2026-04-07T15:30:00",
   "fecha_actualizacion": "2026-04-07T15:30:00",
   "fecha_sync": null
 }
+## 12. Reglas del PDF
+- El PDF debe basarse visualmente en el formato - proporcionado por el cliente.
+- Debe incluir logo.
+- Debe reflejar exactamente los datos del formulario.
+- Debe incluir las 2 fotos:
+  - antes
+  - después
+-Debe incluir espacios para firmas:
+  - técnico
+  - responsable / cliente
+- No se requiere firma digital en la app por ahora.
+- El PDF se genera localmente solo cuando el usuario lo necesite.
+- El PDF no se guarda en ninguna base de datos online.
+- El PDF se usa solo para visualizar, compartir, exportar o imprimir.
+## 13. Reglas de almacenamiento local
+- El JSON se guarda localmente.
+- Las 2 fotos se guardan o referencian localmente.
+- El PDF se genera localmente bajo demanda.
+- El PDF no necesita almacenarse en ninguna base de datos.
+- La app debe poder abrir informes existentes, editarlos y - volver a generar su PDF cuando sea necesario.
+- La app debe mostrar el estado de sincronización del informe.
+## 14. Reglas de sincronización futura
+- La sincronización enviará solo JSON.
+- No se envían fotos en la V1.
+- No se envía el PDF en la V1.
+- Aún no está definida la base de datos online final.
+- La app debe quedar preparada para integrar posteriormente una opción online.
+- Cuando se defina esa opción, el JSON deberá enviarse al servicio o base seleccionada.
+- Si la sincronización es exitosa, el informe cambia a synced.
+## 15. Prioridades de desarrollo
+### Fase 1
+- estructura del proyecto Flutter
+- modelo local de datos
+- formulario
+- guardado local
+- listado de informes
+- edición de informes
+### Fase 2
+- selección de 2 fotos desde galería
+- generación local de PDF
+- compartir/exportar PDF
+### Fase 3
+- sincronización futura de JSON
+- control de estados
+- mejoras visuales
+## 16. Resultado esperado de la V1
+
+Una app Android funcional que permita:
+
+crear informes
+editarlos
+guardar todo localmente
+adjuntar 2 fotos desde galería
+generar un PDF formal localmente
+compartir o exportar el PDF para impresión
+dejar el registro listo para sincronización futura del JSON

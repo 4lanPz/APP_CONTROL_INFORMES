@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -11,6 +12,10 @@ enum ReportPhotoType {
 }
 
 class ReportFileService {
+  static const MethodChannel _storageChannel = MethodChannel(
+    'app_control_informes/storage',
+  );
+
   Future<String> persistPhoto({
     required String reportUuid,
     required String sourcePath,
@@ -33,16 +38,64 @@ class ReportFileService {
     return targetPath;
   }
 
-  Future<String> buildPdfOutputPath(MaintenanceReport report) async {
-    final pdfDirectory = await _ensurePdfDirectory();
+  Future<File> savePdf({
+    required MaintenanceReport report,
+    required List<int> bytes,
+  }) async {
     final generatedAt = DateTime.now();
+    final fileName = _buildPdfFileName(report, generatedAt);
+    final pdfBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+
+    if (Platform.isAndroid) {
+      try {
+        final savedPath = await _storageChannel.invokeMethod<String>(
+          'savePdfToDownloads',
+          {
+            'fileName': fileName,
+            'subdirectory': 'Informes Generados',
+            'bytes': pdfBytes,
+          },
+        );
+
+        if (savedPath != null && savedPath.trim().isNotEmpty) {
+          return File(savedPath);
+        }
+
+        throw const FileSystemException(
+          'No se pudo confirmar la ruta del PDF en Descargas.',
+        );
+      } on MissingPluginException {
+        throw const FileSystemException(
+          'La integracion con Descargas no esta disponible en este dispositivo.',
+        );
+      } on PlatformException {
+        throw const FileSystemException(
+          'No se pudo guardar el PDF en la carpeta Descargas.',
+        );
+      }
+    }
+
+    final outputPath = await _buildFallbackPdfOutputPath(fileName);
+    final file = File(outputPath);
+    await file.writeAsBytes(pdfBytes, flush: true);
+    return file;
+  }
+
+  String _buildPdfFileName(
+    MaintenanceReport report,
+    DateTime generatedAt,
+  ) {
     final technicianName = _sanitizeFileSegment(
       report.technician.name.trim().isEmpty
           ? 'Tecnico'
           : report.technician.name,
     );
     final timestamp = _formatTimestamp(generatedAt);
-    final fileName = 'Informe_${technicianName}_$timestamp.pdf';
+    return 'Informe_${technicianName}_$timestamp.pdf';
+  }
+
+  Future<String> _buildFallbackPdfOutputPath(String fileName) async {
+    final pdfDirectory = await _ensureFallbackPdfDirectory();
     return p.join(pdfDirectory.path, fileName);
   }
 
@@ -56,7 +109,7 @@ class ReportFileService {
     return directory;
   }
 
-  Future<Directory> _ensurePdfDirectory() async {
+  Future<Directory> _ensureFallbackPdfDirectory() async {
     final documentsDirectories = await getExternalStorageDirectories(
       type: StorageDirectory.documents,
     );

@@ -164,10 +164,11 @@ class ReportPdfService {
       ),
     );
 
-    final outputPath = await _fileService.buildPdfOutputPath(report);
-    final file = File(outputPath);
-    await file.writeAsBytes(await document.save());
-    return file;
+    final pdfBytes = await document.save();
+    return _fileService.savePdf(
+      report: report,
+      bytes: pdfBytes,
+    );
   }
 
   pw.Widget _buildHeader(

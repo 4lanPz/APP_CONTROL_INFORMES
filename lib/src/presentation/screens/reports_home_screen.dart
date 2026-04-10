@@ -559,7 +559,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PDF generado correctamente: ${file.path}'),
+          content: Text(_buildPdfSavedMessage(file.path)),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -587,6 +587,14 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
       return result.message!;
     }
     return 'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
+  }
+
+  String _buildPdfSavedMessage(String filePath) {
+    final normalizedPath = filePath.replaceAll('\\', '/').toLowerCase();
+    if (normalizedPath.contains('/download/')) {
+      return 'PDF guardado en Descargas/Informes Generados.';
+    }
+    return 'PDF generado correctamente: $filePath';
   }
 
   String _formatDate(DateTime value) {

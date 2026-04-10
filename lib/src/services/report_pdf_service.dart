@@ -29,6 +29,9 @@ class ReportPdfService {
     final logoImage = await _loadOptionalImage(logoPath);
     final beforeImages = await _loadOptionalImages(report.photos.beforePaths);
     final afterImages = await _loadOptionalImages(report.photos.afterPaths);
+    final technicianSignature = await _loadOptionalImage(
+      report.technicianSignaturePath,
+    );
     final templateBackground = await _loadTemplateBackground();
 
     document.addPage(
@@ -74,9 +77,9 @@ class ReportPdfService {
                     rightValue: report.maintenanceType.label,
                   ),
                   _buildCompactRow(
-                    leftLabel: 'Ubicacion',
+                    leftLabel: 'Ubicación',
                     leftValue: report.location,
-                    rightLabel: 'Horometro',
+                    rightLabel: 'Horómetro',
                     rightValue: report.hourMeter,
                   ),
                   pw.SizedBox(height: 8),
@@ -96,7 +99,7 @@ class ReportPdfService {
                   _buildCompactRow(
                     leftLabel: 'Serie',
                     leftValue: report.equipment.serialNumber,
-                    rightLabel: 'Anio',
+                    rightLabel: 'Año',
                     rightValue: report.equipment.manufactureYear,
                   ),
                   pw.SizedBox(height: 8),
@@ -109,7 +112,7 @@ class ReportPdfService {
                     rightValue: '${report.tests.frequencyHz} Hz',
                   ),
                   _buildCompactRow(
-                    leftLabel: 'Presion aceite',
+                    leftLabel: 'Presión aceite',
                     leftValue: '${report.tests.oilPressurePsi} PSI',
                     rightLabel: 'Temperatura',
                     rightValue: '${report.tests.temperatureC} C',
@@ -117,12 +120,12 @@ class ReportPdfService {
                   _buildCompactRow(
                     leftLabel: 'Ruidos / vibraciones',
                     leftValue:
-                        report.tests.hasAbnormalNoiseOrVibration ? 'Si' : 'No',
+                        report.tests.hasAbnormalNoiseOrVibration ? 'Sí' : 'No',
                     rightLabel: 'Estado sync',
                     rightValue: report.syncStatus.label,
                   ),
                   pw.SizedBox(height: 8),
-                  _buildCompactSectionTitle('Checklist de inspeccion'),
+                  _buildCompactSectionTitle('Checklist de inspección'),
                   _buildChecklistTable(report.checklist),
                 ],
               ),
@@ -145,7 +148,7 @@ class ReportPdfService {
           return [
             _buildSectionTitle('Actividades y repuestos'),
             _buildParagraph(
-              'Descripcion de actividades / repuestos',
+              'Descripción de actividades / repuestos',
               report.activitiesAndParts,
             ),
             pw.SizedBox(height: 10),
@@ -155,9 +158,9 @@ class ReportPdfService {
               report.observationsAndRecommendations,
             ),
             pw.SizedBox(height: 10),
-            _buildSectionTitle('Validacion'),
+            _buildSectionTitle('Validación'),
             _buildCompactRow(
-              leftLabel: 'Tecnico',
+              leftLabel: 'Técnico',
               leftValue:
                   '${report.technician.name} (${report.technician.identification})',
               rightLabel: 'Responsable',
@@ -165,12 +168,12 @@ class ReportPdfService {
                   '${report.clientContact.name} (${report.clientContact.role})',
             ),
             pw.SizedBox(height: 12),
-            _buildSectionTitle('Evidencia fotografica'),
+            _buildSectionTitle('Evidencia fotográfica'),
             _buildPhotoSection('Antes del Servicio', beforeImages),
             pw.SizedBox(height: 10),
             _buildPhotoSection('Estado Final', afterImages),
             pw.SizedBox(height: 18),
-            _buildSignatureRow(),
+            _buildSignatureRow(technicianSignature),
           ];
         },
       ),
@@ -202,7 +205,7 @@ class ReportPdfService {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                'Informe de mantenimiento de grupo electrogeno',
+                'Informe de mantenimiento de grupo electrógeno',
                 style: pw.TextStyle(
                   fontSize: 14,
                   fontWeight: pw.FontWeight.bold,
@@ -314,7 +317,7 @@ class ReportPdfService {
           _tableCell('Sistema', isHeader: true),
           _tableCell('Item', isHeader: true),
           _tableCell('Estado', isHeader: true),
-          _tableCell('Observacion', isHeader: true),
+            _tableCell('Observación', isHeader: true),
         ],
       ),
       ...checklist.map(
@@ -406,21 +409,31 @@ class ReportPdfService {
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey500),
       ),
-      child: pw.Text('No hay imagenes disponibles para esta seccion.'),
+      child: pw.Text('No hay imágenes disponibles para esta sección.'),
     );
   }
 
-  pw.Widget _buildSignatureRow() {
+  pw.Widget _buildSignatureRow(pw.MemoryImage? technicianSignature) {
     return pw.Row(
       children: [
-        pw.Expanded(child: _buildSignatureBox('Firma tecnico')),
+        pw.Expanded(
+          child: _buildSignatureBox(
+            'Firma técnico',
+            signature: technicianSignature,
+          ),
+        ),
         pw.SizedBox(width: 20),
-        pw.Expanded(child: _buildSignatureBox('Firma responsable / cliente')),
+        pw.Expanded(
+          child: _buildSignatureBox('Firma responsable / cliente'),
+        ),
       ],
     );
   }
 
-  pw.Widget _buildSignatureBox(String label) {
+  pw.Widget _buildSignatureBox(
+    String label, {
+    pw.MemoryImage? signature,
+  }) {
     return pw.Column(
       children: [
         pw.Container(
@@ -430,6 +443,12 @@ class ReportPdfService {
               bottom: pw.BorderSide(color: PdfColors.black, width: 1),
             ),
           ),
+          child: signature == null
+              ? null
+              : pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6),
+                  child: pw.Image(signature, fit: pw.BoxFit.contain),
+                ),
         ),
         pw.SizedBox(height: 6),
         pw.Text(label),

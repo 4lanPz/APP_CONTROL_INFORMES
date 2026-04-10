@@ -67,8 +67,8 @@ class SupabaseSyncService {
       successfulUuids: successfulUuids,
       failedUuids: failedUuids,
       message: failedUuids.isEmpty
-          ? 'Sincronizacion completada.'
-          : 'Sincronizacion parcial.',
+          ? 'Sincronización completada.'
+          : 'Sincronización parcial.',
     );
   }
 

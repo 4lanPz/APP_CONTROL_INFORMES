@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,7 @@ import '../../domain/models/maintenance_report.dart';
 import '../../services/editing_session_service.dart';
 import '../../services/report_file_service.dart';
 import '../widgets/draft_app_bar_title.dart';
+import 'signature_capture_screen.dart';
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({
@@ -39,6 +41,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   late bool _hasAbnormalNoiseOrVibration;
   late List<String> _beforePhotoPaths;
   late List<String> _afterPhotoPaths;
+  late String _technicianSignaturePath;
 
   late final TextEditingController _locationController;
   late final TextEditingController _hourMeterController;
@@ -85,6 +88,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         _workingReport.tests.hasAbnormalNoiseOrVibration;
     _beforePhotoPaths = List<String>.from(_workingReport.photos.beforePaths);
     _afterPhotoPaths = List<String>.from(_workingReport.photos.afterPaths);
+    _technicianSignaturePath = _workingReport.technicianSignaturePath;
 
     _locationController = TextEditingController(text: _workingReport.location);
     _hourMeterController =
@@ -268,13 +272,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _locationController,
-                label: 'Ubicacion / sede',
+                label: 'Ubicación / sede',
                 fieldKey: 'location',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _hourMeterController,
-                label: 'Horometro actual',
+                label: 'Horómetro actual',
                 fieldKey: 'hour_meter',
                 keyboardType: TextInputType.number,
               ),
@@ -282,7 +286,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ),
           const SizedBox(height: 16),
           _buildSectionCard(
-            title: 'Identificacion del equipo',
+            title: 'Identificación del equipo',
             children: [
               _buildTextField(
                 controller: _engineBrandController,
@@ -316,7 +320,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _manufactureYearController,
-                label: 'Anio de fabricacion',
+                label: 'Año de fabricación',
                 fieldKey: 'manufacture_year',
                 keyboardType: TextInputType.number,
               ),
@@ -324,7 +328,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ),
           const SizedBox(height: 16),
           _buildSectionCard(
-            title: 'Checklist de inspeccion y tareas',
+            title: 'Checklist de inspección y tareas',
             children: List.generate(
               _workingReport.checklist.length,
               _buildChecklistItem,
@@ -364,7 +368,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _oilPressureController,
-                label: 'Presion de aceite (PSI)',
+                label: 'Presión de aceite (PSI)',
                 fieldKey: 'oil_pressure_psi',
                 keyboardType: TextInputType.number,
               ),
@@ -379,7 +383,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Ruidos o vibraciones anormales'),
-                subtitle: Text(_hasAbnormalNoiseOrVibration ? 'Si' : 'No'),
+                subtitle: Text(_hasAbnormalNoiseOrVibration ? 'Sí' : 'No'),
                 value: _hasAbnormalNoiseOrVibration,
                 onChanged: (value) {
                   setState(() {
@@ -396,7 +400,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
             children: [
               _buildTextField(
                 controller: _activitiesController,
-                label: 'Descripcion de actividades / repuestos utilizados',
+                label: 'Descripción de actividades / repuestos utilizados',
                 fieldKey: 'activities',
                 maxLines: 4,
               ),
@@ -404,17 +408,17 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ),
           const SizedBox(height: 16),
           _buildSectionCard(
-            title: 'Validacion',
+            title: 'Validación',
             children: [
               _buildTextField(
                 controller: _technicianNameController,
-                label: 'Nombre del tecnico',
+                label: 'Nombre del técnico',
                 fieldKey: 'technician_name',
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 controller: _technicianIdController,
-                label: 'Identificacion del tecnico',
+                label: 'Identificación del técnico',
                 fieldKey: 'technician_identification',
                 keyboardType: TextInputType.number,
               ),
@@ -459,6 +463,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
                 fieldKey: 'observations',
                 maxLines: 4,
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSectionCard(
+            title: 'Firma del técnico',
+            children: [
+              _buildTechnicianSignatureField(),
             ],
           ),
         ],
@@ -566,7 +577,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           const SizedBox(height: 12),
           _buildTextField(
             controller: _checklistObservationControllers[index],
-            label: 'Observacion',
+            label: 'Observación',
             fieldKey: 'checklist_observation_$index',
             maxLines: 2,
           ),
@@ -583,8 +594,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     final isBusy = _photoBeingPicked == type;
     final hasError = _hasFieldError(_photoFieldKey(type));
     final helperText = paths.isEmpty
-        ? 'Aun no agregas imagenes.'
-        : 'Manten presionado el icono para arrastrar y ordenar.';
+        ? 'Aún no agregas imágenes.'
+        : 'Mantén presionado el ícono para arrastrar y ordenar.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,7 +614,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
                   child: CircularProgressIndicator(strokeWidth: 2.2),
                 )
               : const Icon(Icons.photo_library_outlined),
-          label: Text(isBusy ? 'Cargando...' : 'Agregar desde galeria'),
+          label: Text(isBusy ? 'Cargando...' : 'Agregar desde galería'),
         ),
         const SizedBox(height: 10),
         AnimatedContainer(
@@ -624,7 +635,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${paths.length} ${paths.length == 1 ? 'imagen cargada' : 'imagenes cargadas'}',
+                '${paths.length} ${paths.length == 1 ? 'imagen cargada' : 'imágenes cargadas'}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 4),
@@ -658,7 +669,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         if (hasError && paths.isEmpty) ...[
           const SizedBox(height: 6),
           Text(
-            'Agrega al menos una imagen en esta seccion.',
+            'Agrega al menos una imagen en esta sección.',
             style: TextStyle(
               color: Theme.of(context).colorScheme.error,
               fontSize: 12,
@@ -729,6 +740,74 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTechnicianSignatureField() {
+    final hasError = _hasFieldError('technician_signature');
+    final signatureFile = File(_technicianSignaturePath);
+    final hasSignature =
+        _technicianSignaturePath.trim().isNotEmpty && signatureFile.existsSync();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _openTechnicianSignatureModal,
+          child: Ink(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasError
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.outlineVariant,
+                width: hasError ? 1.6 : 1,
+              ),
+            ),
+            child: hasSignature
+                ? Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.file(
+                      signatureFile,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.draw_outlined,
+                        size: 38,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text('Toca para agregar la firma'),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          hasSignature
+              ? 'Toca el recuadro para actualizar la firma.'
+              : 'Toca el recuadro para abrir el modal de firma.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        if (hasError) ...[
+          const SizedBox(height: 6),
+          Text(
+            'La firma del técnico es obligatoria.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -855,6 +934,50 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     }
   }
 
+  Future<void> _openTechnicianSignatureModal() async {
+    final signatureBytes = await showModalBottomSheet<Uint8List>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const FractionallySizedBox(
+        heightFactor: 0.9,
+        child: SignatureCaptureScreen(),
+      ),
+    );
+
+    if (!mounted || signatureBytes == null) {
+      return;
+    }
+
+    try {
+      final updatedReport = await widget.reportService.attachTechnicianSignature(
+        report: _buildReportFromFields(),
+        bytes: signatureBytes,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _workingReport = updatedReport;
+        _technicianSignaturePath = updatedReport.technicianSignaturePath;
+      });
+      _clearFieldError('technician_signature');
+      _markFormChanged(immediate: true);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo guardar la firma: $error'),
+        ),
+      );
+    }
+  }
+
   MaintenanceReport _buildReportFromFields() {
     final checklist = List<InspectionChecklistEntry>.generate(
       _workingReport.checklist.length,
@@ -897,6 +1020,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         name: _clientNameController.text.trim(),
         role: _clientRoleController.text.trim(),
       ),
+      technicianSignaturePath: _technicianSignaturePath,
       photos: _workingReport.photos.copyWith(
         beforePaths: List<String>.from(_beforePhotoPaths),
         afterPaths: List<String>.from(_afterPhotoPaths),
@@ -994,6 +1118,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         report.observationsAndRecommendations.trim().isNotEmpty ||
         report.technician.name.trim().isNotEmpty ||
         report.technician.identification.trim().isNotEmpty ||
+        report.technicianSignaturePath.trim().isNotEmpty ||
         report.clientContact.name.trim().isNotEmpty ||
         report.clientContact.role.trim().isNotEmpty ||
         report.photos.beforePaths.isNotEmpty ||
@@ -1064,6 +1189,9 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     }
     if (report.technician.identification.trim().isEmpty) {
       invalidFields.add('technician_identification');
+    }
+    if (report.technicianSignaturePath.trim().isEmpty) {
+      invalidFields.add('technician_signature');
     }
     if (report.clientContact.name.trim().isEmpty) {
       invalidFields.add('client_name');

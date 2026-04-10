@@ -295,12 +295,12 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Todavia no hay informes guardados.',
+              'Todavía no hay informes guardados.',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             const Text(
-              'Usa el boton "Nuevo informe" para registrar el primer mantenimiento.',
+              'Usa el botón "Nuevo informe" para registrar el primer mantenimiento.',
             ),
           ],
         ),
@@ -371,7 +371,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Tecnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}',
+                                'Técnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}',
                               ),
                               Text(
                                 'Fecha: ${_formatDate(report.serviceDate)}',

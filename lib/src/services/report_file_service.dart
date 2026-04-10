@@ -39,6 +39,25 @@ class ReportFileService {
     return targetPath;
   }
 
+  Future<String> persistTechnicianSignature({
+    required String reportUuid,
+    required List<int> bytes,
+  }) async {
+    final signaturesDirectory = await _ensureDirectory([
+      'reports',
+      'signatures',
+    ]);
+    final targetPath = p.join(
+      signaturesDirectory.path,
+      '${reportUuid}_technician_signature.png',
+    );
+
+    final signatureBytes =
+        bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    await File(targetPath).writeAsBytes(signatureBytes, flush: true);
+    return targetPath;
+  }
+
   Future<File> savePdf({
     required MaintenanceReport report,
     required List<int> bytes,

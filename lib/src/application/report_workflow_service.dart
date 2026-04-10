@@ -65,6 +65,7 @@ class ReportWorkflowService {
         name: '',
         identification: '',
       ),
+      technicianSignaturePath: '',
       clientContact: const ClientContactInfo(
         name: '',
         role: '',
@@ -129,6 +130,20 @@ class ReportWorkflowService {
     return report.copyWith(photos: updatedPhotos);
   }
 
+  Future<MaintenanceReport> attachTechnicianSignature({
+    required MaintenanceReport report,
+    required List<int> bytes,
+  }) async {
+    final signaturePath = await _fileService.persistTechnicianSignature(
+      reportUuid: report.uuid,
+      bytes: bytes,
+    );
+
+    return report.copyWith(
+      technicianSignaturePath: signaturePath,
+    );
+  }
+
   Future<File> generatePdf(
     MaintenanceReport report, {
     String? logoPath,
@@ -185,7 +200,7 @@ class ReportWorkflowService {
   List<InspectionChecklistEntry> _defaultChecklist() {
     return const [
       InspectionChecklistEntry(
-        system: 'Lubricacion',
+        system: 'Lubricación',
         item: 'Nivel de aceite / Cambio realizado',
         state: InspectionState.notApplicable,
         observation: '',
@@ -197,20 +212,20 @@ class ReportWorkflowService {
         observation: '',
       ),
       InspectionChecklistEntry(
-        system: 'Refrigeracion',
+        system: 'Refrigeración',
         item: 'Nivel refrigerante / Radiador / Mangueras',
         state: InspectionState.notApplicable,
         observation: '',
       ),
       InspectionChecklistEntry(
-        system: 'Admision/Escape',
+        system: 'Admisión/Escape',
         item: 'Filtro de aire / Estado del silenciador',
         state: InspectionState.notApplicable,
         observation: '',
       ),
       InspectionChecklistEntry(
-        system: 'Electrico',
-        item: 'Estado de baterias / Voltaje / Bornes',
+        system: 'Eléctrico',
+        item: 'Estado de baterías / Voltaje / Bornes',
         state: InspectionState.notApplicable,
         observation: '',
       ),
@@ -221,8 +236,8 @@ class ReportWorkflowService {
         observation: '',
       ),
       InspectionChecklistEntry(
-        system: 'Mecanico',
-        item: 'Correas / Tension / Desgaste / Soportes',
+        system: 'Mecánico',
+        item: 'Correas / Tensión / Desgaste / Soportes',
         state: InspectionState.notApplicable,
         observation: '',
       ),

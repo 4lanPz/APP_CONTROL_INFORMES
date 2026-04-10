@@ -5,10 +5,10 @@ class ReportValidator {
     final errors = <String>[];
 
     if (report.location.trim().isEmpty) {
-      errors.add('La ubicacion es obligatoria.');
+      errors.add('La ubicación es obligatoria.');
     }
     if (report.hourMeter.trim().isEmpty) {
-      errors.add('El horometro actual es obligatorio.');
+      errors.add('El horómetro actual es obligatorio.');
     }
     if (report.equipment.engineBrand.trim().isEmpty) {
       errors.add('La marca del motor es obligatoria.');
@@ -26,7 +26,7 @@ class ReportValidator {
       errors.add('La serie del equipo es obligatoria.');
     }
     if (report.equipment.manufactureYear.trim().isEmpty) {
-      errors.add('El anio de fabricacion es obligatorio.');
+      errors.add('El año de fabricación es obligatorio.');
     }
     if (report.activitiesAndParts.trim().isEmpty) {
       errors.add('Las actividades y repuestos son obligatorios.');
@@ -35,10 +35,13 @@ class ReportValidator {
       errors.add('Las observaciones y recomendaciones son obligatorias.');
     }
     if (report.technician.name.trim().isEmpty) {
-      errors.add('El nombre del tecnico es obligatorio.');
+      errors.add('El nombre del técnico es obligatorio.');
     }
     if (report.technician.identification.trim().isEmpty) {
-      errors.add('La identificacion del tecnico es obligatoria.');
+      errors.add('La identificación del técnico es obligatoria.');
+    }
+    if (report.technicianSignaturePath.trim().isEmpty) {
+      errors.add('La firma del técnico es obligatoria.');
     }
     if (report.clientContact.name.trim().isEmpty) {
       errors.add('El nombre del responsable es obligatorio.');
@@ -47,17 +50,17 @@ class ReportValidator {
       errors.add('El cargo del responsable es obligatorio.');
     }
     if (!report.photos.isComplete) {
-      errors.add('Debes adjuntar al menos una foto antes y una foto despues.');
+      errors.add('Debes adjuntar al menos una foto antes y una foto después.');
     }
     if (report.checklist.isEmpty) {
-      errors.add('El checklist no puede estar vacio.');
+      errors.add('El checklist no puede estar vacío.');
     }
 
     for (final entry in report.checklist) {
       if (entry.state != InspectionState.notApplicable &&
           entry.observation.trim().isEmpty) {
         errors.add(
-          'Cada item del checklist debe incluir observacion: ${entry.system}.',
+          'Cada ítem del checklist debe incluir observación: ${entry.system}.',
         );
         break;
       }
@@ -72,7 +75,7 @@ class ReportValidator {
       errors.add('La frecuencia es obligatoria.');
     }
     if (report.tests.oilPressurePsi.trim().isEmpty) {
-      errors.add('La presion de aceite es obligatoria.');
+      errors.add('La presión de aceite es obligatoria.');
     }
     if (report.tests.temperatureC.trim().isEmpty) {
       errors.add('La temperatura es obligatoria.');

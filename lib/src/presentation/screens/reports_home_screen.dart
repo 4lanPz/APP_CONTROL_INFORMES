@@ -4,6 +4,7 @@ import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/editing_session_service.dart';
 import 'report_form_screen.dart';
 
 class ReportsHomeScreen extends StatefulWidget {
@@ -11,10 +12,12 @@ class ReportsHomeScreen extends StatefulWidget {
     super.key,
     required this.reportService,
     required this.config,
+    required this.editingSessionService,
   });
 
   final ReportWorkflowService reportService;
   final AppConfig config;
+  final EditingSessionService editingSessionService;
 
   @override
   State<ReportsHomeScreen> createState() => _ReportsHomeScreenState();
@@ -25,6 +28,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   bool _isSyncing = false;
   String? _pdfGeneratingUuid;
   String? _message;
+  bool _didAttemptSessionRestore = false;
   List<MaintenanceReport> _reports = const [];
 
   @override
@@ -475,6 +479,11 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         _reports = reports;
         _isLoading = false;
       });
+
+      if (!_didAttemptSessionRestore) {
+        _didAttemptSessionRestore = true;
+        await _resumeEditingSessionIfNeeded();
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -492,6 +501,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
       MaterialPageRoute(
         builder: (context) => ReportFormScreen(
           reportService: widget.reportService,
+          editingSessionService: widget.editingSessionService,
         ),
       ),
     );
@@ -506,6 +516,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
       MaterialPageRoute(
         builder: (context) => ReportFormScreen(
           reportService: widget.reportService,
+          editingSessionService: widget.editingSessionService,
           initialReport: report,
         ),
       ),
@@ -607,5 +618,37 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '${_formatDate(value)} $hour:$minute';
+  }
+
+  Future<void> _resumeEditingSessionIfNeeded() async {
+    final activeReportUuid =
+        await widget.editingSessionService.loadActiveReportUuid();
+    if (!mounted || activeReportUuid == null) {
+      return;
+    }
+
+    final report = await widget.reportService.getReport(activeReportUuid);
+    if (!mounted) {
+      return;
+    }
+
+    if (report == null) {
+      await widget.editingSessionService.clearActiveReportUuid();
+      return;
+    }
+
+    final didChange = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => ReportFormScreen(
+          reportService: widget.reportService,
+          editingSessionService: widget.editingSessionService,
+          initialReport: report,
+        ),
+      ),
+    );
+
+    if (didChange == true && mounted) {
+      await _reload();
+    }
   }
 }

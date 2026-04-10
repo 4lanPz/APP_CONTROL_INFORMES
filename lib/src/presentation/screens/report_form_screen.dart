@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,23 +6,29 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../application/report_workflow_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/editing_session_service.dart';
 import '../../services/report_file_service.dart';
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({
     super.key,
     required this.reportService,
+    required this.editingSessionService,
     this.initialReport,
   });
 
   final ReportWorkflowService reportService;
+  final EditingSessionService editingSessionService;
   final MaintenanceReport? initialReport;
 
   @override
   State<ReportFormScreen> createState() => _ReportFormScreenState();
 }
 
-class _ReportFormScreenState extends State<ReportFormScreen> {
+class _ReportFormScreenState extends State<ReportFormScreen>
+    with WidgetsBindingObserver {
+  static const Duration _autoSaveDelay = Duration(milliseconds: 700);
+
   final ImagePicker _imagePicker = ImagePicker();
   final Set<String> _invalidFields = <String>{};
 
@@ -57,13 +64,17 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   late List<InspectionState> _checklistStates;
 
   bool _isSaving = false;
+  bool _isAutoSaving = false;
+  bool _hasPendingChanges = false;
   ReportPhotoType? _photoBeingPicked;
+  Timer? _autoSaveTimer;
 
   bool get _isEditing => widget.initialReport != null;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _workingReport =
         widget.initialReport ?? widget.reportService.createEmptyReport();
@@ -137,10 +148,18 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     _checklistObservationControllers = _workingReport.checklist
         .map((entry) => TextEditingController(text: entry.observation))
         .toList(growable: false);
+
+    _registerAutoSaveListeners();
+    unawaited(
+      widget.editingSessionService.saveActiveReportUuid(_workingReport.uuid),
+    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveTimer?.cancel();
+    unawaited(widget.editingSessionService.clearActiveReportUuid());
     _locationController.dispose();
     _hourMeterController.dispose();
     _engineBrandController.dispose();
@@ -167,6 +186,16 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     }
 
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_persistDraft(immediate: true));
+    }
   }
 
   @override
@@ -230,6 +259,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   setState(() {
                     _maintenanceType = value;
                   });
+                  _markFormChanged();
                 },
               ),
               const SizedBox(height: 12),
@@ -352,6 +382,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   setState(() {
                     _hasAbnormalNoiseOrVibration = value;
                   });
+                  _markFormChanged();
                 },
               ),
             ],
@@ -476,6 +507,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         if (value.trim().isNotEmpty) {
           _clearFieldError(fieldKey);
         }
+        _markFormChanged();
       },
     );
   }
@@ -525,6 +557,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               setState(() {
                 _checklistStates[index] = value;
               });
+              _markFormChanged();
             },
           ),
           const SizedBox(height: 12),
@@ -586,13 +619,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               : const Icon(Icons.photo_library_outlined),
           label: Text(isBusy ? 'Cargando...' : 'Elegir desde galeria'),
         ),
-        if (path.trim().isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            path,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ] else if (hasError) ...[
+        if (hasError && path.trim().isEmpty) ...[
           const SizedBox(height: 6),
           Text(
             'Selecciona esta foto.',
@@ -621,6 +648,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     setState(() {
       _serviceDate = selected;
     });
+    _markFormChanged();
   }
 
   Future<void> _pickPhoto(ReportPhotoType type) async {
@@ -654,6 +682,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         _afterPhotoPath = updatedReport.photos.afterPath;
       });
       _clearFieldError(_photoFieldKey(type));
+      _markFormChanged(immediate: true);
     } catch (error) {
       if (!mounted) {
         return;
@@ -672,6 +701,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   Future<void> _saveReport() async {
+    _autoSaveTimer?.cancel();
     final report = _buildReportFromFields();
     final errors = widget.reportService.validateReport(report);
     final invalidFieldKeys = _collectInvalidFieldKeys(report);
@@ -704,6 +734,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       }
 
       _workingReport = savedReport;
+      _hasPendingChanges = false;
+      await widget.editingSessionService.clearActiveReportUuid();
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
@@ -768,6 +800,110 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         beforePath: _beforePhotoPath,
         afterPath: _afterPhotoPath,
       ),
+    );
+  }
+
+  void _registerAutoSaveListeners() {
+    final controllers = <TextEditingController>[
+      _locationController,
+      _hourMeterController,
+      _engineBrandController,
+      _engineModelController,
+      _alternatorBrandController,
+      _powerController,
+      _serialNumberController,
+      _manufactureYearController,
+      _voltageL1Controller,
+      _voltageL2Controller,
+      _voltageL3Controller,
+      _frequencyController,
+      _oilPressureController,
+      _temperatureController,
+      _activitiesController,
+      _observationsController,
+      _technicianNameController,
+      _technicianIdController,
+      _clientNameController,
+      _clientRoleController,
+      ..._checklistObservationControllers,
+    ];
+
+    for (final controller in controllers) {
+      controller.addListener(_markFormChanged);
+    }
+  }
+
+  void _markFormChanged({bool immediate = false}) {
+    _hasPendingChanges = true;
+    _autoSaveTimer?.cancel();
+
+    if (immediate) {
+      unawaited(_persistDraft(immediate: true));
+      return;
+    }
+
+    _autoSaveTimer = Timer(_autoSaveDelay, () {
+      unawaited(_persistDraft());
+    });
+  }
+
+  Future<void> _persistDraft({bool immediate = false}) async {
+    if (_isSaving || _isAutoSaving) {
+      return;
+    }
+
+    if (!_hasPendingChanges && !immediate) {
+      return;
+    }
+
+    final report = _buildReportFromFields();
+    if (!_shouldPersistDraft(report)) {
+      return;
+    }
+
+    _isAutoSaving = true;
+    try {
+      final savedReport = await widget.reportService.saveReport(report);
+      _workingReport = savedReport;
+      _hasPendingChanges = false;
+    } catch (_) {
+      _hasPendingChanges = true;
+    } finally {
+      _isAutoSaving = false;
+    }
+  }
+
+  bool _shouldPersistDraft(MaintenanceReport report) {
+    if (report.location.trim().isNotEmpty ||
+        report.hourMeter.trim().isNotEmpty ||
+        report.equipment.engineBrand.trim().isNotEmpty ||
+        report.equipment.engineModel.trim().isNotEmpty ||
+        report.equipment.alternatorBrand.trim().isNotEmpty ||
+        report.equipment.power.trim().isNotEmpty ||
+        report.equipment.serialNumber.trim().isNotEmpty ||
+        report.equipment.manufactureYear.trim().isNotEmpty ||
+        report.tests.voltageL1.trim().isNotEmpty ||
+        report.tests.voltageL2.trim().isNotEmpty ||
+        report.tests.voltageL3.trim().isNotEmpty ||
+        report.tests.frequencyHz.trim().isNotEmpty ||
+        report.tests.oilPressurePsi.trim().isNotEmpty ||
+        report.tests.temperatureC.trim().isNotEmpty ||
+        report.tests.hasAbnormalNoiseOrVibration ||
+        report.activitiesAndParts.trim().isNotEmpty ||
+        report.observationsAndRecommendations.trim().isNotEmpty ||
+        report.technician.name.trim().isNotEmpty ||
+        report.technician.identification.trim().isNotEmpty ||
+        report.clientContact.name.trim().isNotEmpty ||
+        report.clientContact.role.trim().isNotEmpty ||
+        report.photos.beforePath.trim().isNotEmpty ||
+        report.photos.afterPath.trim().isNotEmpty) {
+      return true;
+    }
+
+    return report.checklist.any(
+      (entry) =>
+          entry.state != InspectionState.notApplicable ||
+          entry.observation.trim().isNotEmpty,
     );
   }
 

@@ -7,6 +7,7 @@ import '../data/local/app_database.dart';
 import '../data/local/local_maintenance_report_repository.dart';
 import '../data/remote/supabase_sync_service.dart';
 import '../services/report_file_service.dart';
+import '../services/editing_session_service.dart';
 import '../services/report_pdf_service.dart';
 import '../services/report_validator.dart';
 
@@ -16,6 +17,7 @@ class AppBootstrap {
     required this.database,
     required this.reportRepository,
     required this.fileService,
+    required this.editingSessionService,
     required this.pdfService,
     required this.syncService,
     required this.validator,
@@ -26,6 +28,7 @@ class AppBootstrap {
   final AppDatabase database;
   final LocalMaintenanceReportRepository reportRepository;
   final ReportFileService fileService;
+  final EditingSessionService editingSessionService;
   final ReportPdfService pdfService;
   final SupabaseSyncService syncService;
   final ReportValidator validator;
@@ -47,6 +50,7 @@ class AppBootstrap {
 
     final reportRepository = LocalMaintenanceReportRepository(database);
     final fileService = ReportFileService();
+    final editingSessionService = EditingSessionService();
     final pdfService = ReportPdfService(fileService);
     final syncService = SupabaseSyncService(config: config);
     final validator = ReportValidator();
@@ -63,6 +67,7 @@ class AppBootstrap {
       database: database,
       reportRepository: reportRepository,
       fileService: fileService,
+      editingSessionService: editingSessionService,
       pdfService: pdfService,
       syncService: syncService,
       validator: validator,

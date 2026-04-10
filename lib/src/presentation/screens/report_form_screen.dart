@@ -8,6 +8,7 @@ import '../../application/report_workflow_service.dart';
 import '../../domain/models/maintenance_report.dart';
 import '../../services/editing_session_service.dart';
 import '../../services/report_file_service.dart';
+import '../widgets/draft_app_bar_title.dart';
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({
@@ -202,7 +203,9 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar formulario' : 'Nuevo formulario'),
+        title: DraftAppBarTitle(
+          _isEditing ? 'Editar formulario' : 'Nuevo formulario',
+        ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,

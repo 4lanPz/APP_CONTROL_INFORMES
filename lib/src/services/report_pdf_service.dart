@@ -12,6 +12,8 @@ class ReportPdfService {
   const ReportPdfService(this._fileService);
 
   static const _templateAssetPath = 'Formulario_base.pdf';
+  static const _showDraftWatermark = true;
+  static const _draftWatermarkLabel = 'BORRADOR';
 
   final ReportFileService _fileService;
 
@@ -43,6 +45,9 @@ class ReportPdfService {
                       fit: pw.BoxFit.fill,
                     ),
                   ),
+          buildForeground: _showDraftWatermark
+              ? (context) => _buildDraftWatermark()
+              : null,
         ),
         build: (context) {
           return pw.Padding(
@@ -129,8 +134,13 @@ class ReportPdfService {
 
     document.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          buildForeground: _showDraftWatermark
+              ? (context) => _buildDraftWatermark()
+              : null,
+        ),
         build: (context) {
           return [
             _buildSectionTitle('Actividades y repuestos'),
@@ -454,5 +464,18 @@ class ReportPdfService {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$day/$month/${value.year}';
+  }
+
+  pw.Widget _buildDraftWatermark() {
+    return pw.FullPage(
+      ignoreMargins: true,
+      child: pw.Watermark.text(
+        _draftWatermarkLabel,
+        style: pw.TextStyle(
+          color: PdfColor.fromHex('#D7DED9'),
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    );
   }
 }

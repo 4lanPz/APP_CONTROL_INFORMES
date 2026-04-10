@@ -4,6 +4,7 @@ import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../widgets/draft_app_bar_title.dart';
 
 class BackendReadyScreen extends StatefulWidget {
   const BackendReadyScreen({
@@ -42,7 +43,7 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Backend base listo'),
+        title: const DraftAppBarTitle('Backend base listo'),
       ),
       body: RefreshIndicator(
         onRefresh: _reload,

@@ -5,6 +5,7 @@ import '../../config/app_config.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
 import '../../services/editing_session_service.dart';
+import '../widgets/draft_app_bar_title.dart';
 import 'report_form_screen.dart';
 
 class ReportsHomeScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Informes de mantenimiento'),
+        title: const DraftAppBarTitle('Informes de mantenimiento'),
         actions: [
           IconButton(
             tooltip: 'Sincronizar pendientes',

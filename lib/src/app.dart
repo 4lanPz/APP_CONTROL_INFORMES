@@ -14,7 +14,7 @@ class MaintenanceReportsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Control de Informes',
+      title: 'Control de Informes - Borrador',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

@@ -42,6 +42,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   late List<String> _beforePhotoPaths;
   late List<String> _afterPhotoPaths;
   late String _technicianSignaturePath;
+  late String _clientSignaturePath;
 
   late final TextEditingController _locationController;
   late final TextEditingController _hourMeterController;
@@ -89,6 +90,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     _beforePhotoPaths = List<String>.from(_workingReport.photos.beforePaths);
     _afterPhotoPaths = List<String>.from(_workingReport.photos.afterPaths);
     _technicianSignaturePath = _workingReport.technicianSignaturePath;
+    _clientSignaturePath = _workingReport.clientSignaturePath;
 
     _locationController = TextEditingController(text: _workingReport.location);
     _hourMeterController =
@@ -470,6 +472,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
             title: 'Firma del técnico',
             children: [
               _buildTechnicianSignatureField(),
+              const SizedBox(height: 16),
+              _buildClientSignatureField(),
             ],
           ),
         ],
@@ -744,17 +748,45 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   }
 
   Widget _buildTechnicianSignatureField() {
-    final hasError = _hasFieldError('technician_signature');
-    final signatureFile = File(_technicianSignaturePath);
+    return _buildSignatureField(
+      title: 'Firma del técnico',
+      signaturePath: _technicianSignaturePath,
+      fieldKey: 'technician_signature',
+      onTap: _openTechnicianSignatureModal,
+    );
+  }
+
+  Widget _buildClientSignatureField() {
+    return _buildSignatureField(
+      title: 'Firma del cliente',
+      signaturePath: _clientSignaturePath,
+      fieldKey: 'client_signature',
+      onTap: _openClientSignatureModal,
+    );
+  }
+
+  Widget _buildSignatureField({
+    required String title,
+    required String signaturePath,
+    required String fieldKey,
+    required VoidCallback onTap,
+  }) {
+    final hasError = _hasFieldError(fieldKey);
+    final signatureFile = File(signaturePath);
     final hasSignature =
-        _technicianSignaturePath.trim().isNotEmpty && signatureFile.existsSync();
+        signaturePath.trim().isNotEmpty && signatureFile.existsSync();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
         InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: _openTechnicianSignatureModal,
+          onTap: onTap,
           child: Ink(
             height: 180,
             width: double.infinity,
@@ -800,7 +832,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         if (hasError) ...[
           const SizedBox(height: 6),
           Text(
-            'La firma del técnico es obligatoria.',
+            'Esta firma es obligatoria.',
             style: TextStyle(
               color: Theme.of(context).colorScheme.error,
               fontSize: 12,
@@ -942,7 +974,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => const FractionallySizedBox(
         heightFactor: 0.9,
-        child: SignatureCaptureScreen(),
+        child: SignatureCaptureScreen(title: 'Firma del técnico'),
       ),
     );
 
@@ -964,6 +996,50 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         _technicianSignaturePath = updatedReport.technicianSignaturePath;
       });
       _clearFieldError('technician_signature');
+      _markFormChanged(immediate: true);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo guardar la firma: $error'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openClientSignatureModal() async {
+    final signatureBytes = await showModalBottomSheet<Uint8List>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const FractionallySizedBox(
+        heightFactor: 0.9,
+        child: SignatureCaptureScreen(title: 'Firma del cliente'),
+      ),
+    );
+
+    if (!mounted || signatureBytes == null) {
+      return;
+    }
+
+    try {
+      final updatedReport = await widget.reportService.attachClientSignature(
+        report: _buildReportFromFields(),
+        bytes: signatureBytes,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _workingReport = updatedReport;
+        _clientSignaturePath = updatedReport.clientSignaturePath;
+      });
+      _clearFieldError('client_signature');
       _markFormChanged(immediate: true);
     } catch (error) {
       if (!mounted) {
@@ -1021,6 +1097,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         role: _clientRoleController.text.trim(),
       ),
       technicianSignaturePath: _technicianSignaturePath,
+      clientSignaturePath: _clientSignaturePath,
       photos: _workingReport.photos.copyWith(
         beforePaths: List<String>.from(_beforePhotoPaths),
         afterPaths: List<String>.from(_afterPhotoPaths),
@@ -1119,6 +1196,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         report.technician.name.trim().isNotEmpty ||
         report.technician.identification.trim().isNotEmpty ||
         report.technicianSignaturePath.trim().isNotEmpty ||
+        report.clientSignaturePath.trim().isNotEmpty ||
         report.clientContact.name.trim().isNotEmpty ||
         report.clientContact.role.trim().isNotEmpty ||
         report.photos.beforePaths.isNotEmpty ||
@@ -1192,6 +1270,9 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     }
     if (report.technicianSignaturePath.trim().isEmpty) {
       invalidFields.add('technician_signature');
+    }
+    if (report.clientSignaturePath.trim().isEmpty) {
+      invalidFields.add('client_signature');
     }
     if (report.clientContact.name.trim().isEmpty) {
       invalidFields.add('client_name');

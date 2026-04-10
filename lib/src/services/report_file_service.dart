@@ -39,8 +39,9 @@ class ReportFileService {
     return targetPath;
   }
 
-  Future<String> persistTechnicianSignature({
+  Future<String> persistSignature({
     required String reportUuid,
+    required String suffix,
     required List<int> bytes,
   }) async {
     final signaturesDirectory = await _ensureDirectory([
@@ -49,7 +50,7 @@ class ReportFileService {
     ]);
     final targetPath = p.join(
       signaturesDirectory.path,
-      '${reportUuid}_technician_signature.png',
+      '${reportUuid}_$suffix.png',
     );
 
     final signatureBytes =

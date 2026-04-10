@@ -43,6 +43,9 @@ class ReportValidator {
     if (report.technicianSignaturePath.trim().isEmpty) {
       errors.add('La firma del técnico es obligatoria.');
     }
+    if (report.clientSignaturePath.trim().isEmpty) {
+      errors.add('La firma del cliente es obligatoria.');
+    }
     if (report.clientContact.name.trim().isEmpty) {
       errors.add('El nombre del responsable es obligatorio.');
     }

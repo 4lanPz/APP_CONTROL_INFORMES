@@ -66,6 +66,7 @@ class ReportWorkflowService {
         identification: '',
       ),
       technicianSignaturePath: '',
+      clientSignaturePath: '',
       clientContact: const ClientContactInfo(
         name: '',
         role: '',
@@ -134,13 +135,29 @@ class ReportWorkflowService {
     required MaintenanceReport report,
     required List<int> bytes,
   }) async {
-    final signaturePath = await _fileService.persistTechnicianSignature(
+    final signaturePath = await _fileService.persistSignature(
       reportUuid: report.uuid,
+      suffix: 'technician_signature',
       bytes: bytes,
     );
 
     return report.copyWith(
       technicianSignaturePath: signaturePath,
+    );
+  }
+
+  Future<MaintenanceReport> attachClientSignature({
+    required MaintenanceReport report,
+    required List<int> bytes,
+  }) async {
+    final signaturePath = await _fileService.persistSignature(
+      reportUuid: report.uuid,
+      suffix: 'client_signature',
+      bytes: bytes,
+    );
+
+    return report.copyWith(
+      clientSignaturePath: signaturePath,
     );
   }
 

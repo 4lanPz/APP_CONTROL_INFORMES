@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 class SignatureCaptureScreen extends StatefulWidget {
-  const SignatureCaptureScreen({super.key});
+  const SignatureCaptureScreen({
+    super.key,
+    required this.title,
+  });
+
+  final String title;
 
   @override
   State<SignatureCaptureScreen> createState() => _SignatureCaptureScreenState();
@@ -43,7 +48,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Firma del tecnico',
+                    widget.title,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),

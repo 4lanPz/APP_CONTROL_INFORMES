@@ -32,6 +32,9 @@ class ReportPdfService {
     final technicianSignature = await _loadOptionalImage(
       report.technicianSignaturePath,
     );
+    final clientSignature = await _loadOptionalImage(
+      report.clientSignaturePath,
+    );
     final templateBackground = await _loadTemplateBackground();
 
     document.addPage(
@@ -173,7 +176,10 @@ class ReportPdfService {
             pw.SizedBox(height: 10),
             _buildPhotoSection('Estado Final', afterImages),
             pw.SizedBox(height: 18),
-            _buildSignatureRow(technicianSignature),
+            _buildSignatureRow(
+              technicianSignature: technicianSignature,
+              clientSignature: clientSignature,
+            ),
           ];
         },
       ),
@@ -413,7 +419,10 @@ class ReportPdfService {
     );
   }
 
-  pw.Widget _buildSignatureRow(pw.MemoryImage? technicianSignature) {
+  pw.Widget _buildSignatureRow({
+    required pw.MemoryImage? technicianSignature,
+    required pw.MemoryImage? clientSignature,
+  }) {
     return pw.Row(
       children: [
         pw.Expanded(
@@ -424,7 +433,10 @@ class ReportPdfService {
         ),
         pw.SizedBox(width: 20),
         pw.Expanded(
-          child: _buildSignatureBox('Firma responsable / cliente'),
+          child: _buildSignatureBox(
+            'Firma responsable / cliente',
+            signature: clientSignature,
+          ),
         ),
       ],
     );

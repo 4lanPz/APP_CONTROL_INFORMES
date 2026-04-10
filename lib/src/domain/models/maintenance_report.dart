@@ -380,6 +380,7 @@ class MaintenanceReport {
     required this.observationsAndRecommendations,
     required this.technician,
     required this.technicianSignaturePath,
+    required this.clientSignaturePath,
     required this.clientContact,
     required this.photos,
     required this.syncStatus,
@@ -401,6 +402,7 @@ class MaintenanceReport {
   final String observationsAndRecommendations;
   final TechnicianInfo technician;
   final String technicianSignaturePath;
+  final String clientSignaturePath;
   final ClientContactInfo clientContact;
   final ReportPhotos photos;
   final SyncStatus syncStatus;
@@ -422,6 +424,7 @@ class MaintenanceReport {
     String? observationsAndRecommendations,
     TechnicianInfo? technician,
     String? technicianSignaturePath,
+    String? clientSignaturePath,
     ClientContactInfo? clientContact,
     ReportPhotos? photos,
     SyncStatus? syncStatus,
@@ -445,6 +448,7 @@ class MaintenanceReport {
       technician: technician ?? this.technician,
       technicianSignaturePath:
           technicianSignaturePath ?? this.technicianSignaturePath,
+      clientSignaturePath: clientSignaturePath ?? this.clientSignaturePath,
       clientContact: clientContact ?? this.clientContact,
       photos: photos ?? this.photos,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -470,6 +474,7 @@ class MaintenanceReport {
       'observaciones_recomendaciones': observationsAndRecommendations,
       'tecnico': technician.toJson(),
       'firma_tecnico_ruta_local': technicianSignaturePath,
+      'firma_cliente_ruta_local': clientSignaturePath,
       'responsable_cliente': clientContact.toJson(),
       'fotos': photos.toJson(),
       'estado_sync': syncStatus.apiValue,
@@ -523,6 +528,7 @@ class MaintenanceReport {
       technician: TechnicianInfo.fromJson(technicianJson),
       technicianSignaturePath:
           (json['firma_tecnico_ruta_local'] ?? '') as String,
+      clientSignaturePath: (json['firma_cliente_ruta_local'] ?? '') as String,
       clientContact: ClientContactInfo.fromJson(clientJson),
       photos: ReportPhotos.fromJson(photosJson),
       syncStatus: SyncStatus.fromApiValue(json['estado_sync'] as String?),

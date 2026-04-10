@@ -70,8 +70,8 @@ class ReportWorkflowService {
         role: '',
       ),
       photos: const ReportPhotos(
-        beforePath: '',
-        afterPath: '',
+        beforePaths: [],
+        afterPaths: [],
       ),
       syncStatus: SyncStatus.pendingSync,
       createdAt: now,
@@ -98,20 +98,33 @@ class ReportWorkflowService {
     return _repository.save(normalized);
   }
 
-  Future<MaintenanceReport> attachPhoto({
+  Future<MaintenanceReport> attachPhotos({
     required MaintenanceReport report,
-    required String sourcePath,
+    required List<String> sourcePaths,
     required ReportPhotoType type,
   }) async {
-    final managedPath = await _fileService.persistPhoto(
-      reportUuid: report.uuid,
-      sourcePath: sourcePath,
-      type: type,
-    );
+    if (sourcePaths.isEmpty) {
+      return report;
+    }
+
+    final managedPaths = <String>[];
+    for (final sourcePath in sourcePaths) {
+      managedPaths.add(
+        await _fileService.persistPhoto(
+          reportUuid: report.uuid,
+          sourcePath: sourcePath,
+          type: type,
+        ),
+      );
+    }
 
     final updatedPhotos = type == ReportPhotoType.before
-        ? report.photos.copyWith(beforePath: managedPath)
-        : report.photos.copyWith(afterPath: managedPath);
+        ? report.photos.copyWith(
+            beforePaths: [...report.photos.beforePaths, ...managedPaths],
+          )
+        : report.photos.copyWith(
+            afterPaths: [...report.photos.afterPaths, ...managedPaths],
+          );
 
     return report.copyWith(photos: updatedPhotos);
   }

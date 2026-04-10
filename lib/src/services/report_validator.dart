@@ -47,7 +47,7 @@ class ReportValidator {
       errors.add('El cargo del responsable es obligatorio.');
     }
     if (!report.photos.isComplete) {
-      errors.add('Debes adjuntar foto antes y foto despues.');
+      errors.add('Debes adjuntar al menos una foto antes y una foto despues.');
     }
     if (report.checklist.isEmpty) {
       errors.add('El checklist no puede estar vacio.');

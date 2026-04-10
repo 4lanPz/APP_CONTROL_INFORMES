@@ -29,9 +29,10 @@ class ReportFileService {
     final photosDirectory = await _ensureDirectory(['reports', 'photos']);
     final extension = p.extension(sourcePath);
     final suffix = type == ReportPhotoType.before ? 'before' : 'after';
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
     final targetPath = p.join(
       photosDirectory.path,
-      '${reportUuid}_$suffix$extension',
+      '${reportUuid}_${suffix}_$timestamp$extension',
     );
 
     await sourceFile.copy(targetPath);

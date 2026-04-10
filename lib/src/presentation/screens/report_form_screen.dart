@@ -37,8 +37,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   late DateTime _serviceDate;
   late MaintenanceType _maintenanceType;
   late bool _hasAbnormalNoiseOrVibration;
-  late String _beforePhotoPath;
-  late String _afterPhotoPath;
+  late List<String> _beforePhotoPaths;
+  late List<String> _afterPhotoPaths;
 
   late final TextEditingController _locationController;
   late final TextEditingController _hourMeterController;
@@ -83,8 +83,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     _maintenanceType = _workingReport.maintenanceType;
     _hasAbnormalNoiseOrVibration =
         _workingReport.tests.hasAbnormalNoiseOrVibration;
-    _beforePhotoPath = _workingReport.photos.beforePath;
-    _afterPhotoPath = _workingReport.photos.afterPath;
+    _beforePhotoPaths = List<String>.from(_workingReport.photos.beforePaths);
+    _afterPhotoPaths = List<String>.from(_workingReport.photos.afterPaths);
 
     _locationController = TextEditingController(text: _workingReport.location);
     _hourMeterController =
@@ -404,18 +404,6 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ),
           const SizedBox(height: 16),
           _buildSectionCard(
-            title: 'Observaciones y recomendaciones',
-            children: [
-              _buildTextField(
-                controller: _observationsController,
-                label: 'Observaciones y recomendaciones',
-                fieldKey: 'observations',
-                maxLines: 4,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSectionCard(
             title: 'Validacion',
             children: [
               _buildTextField(
@@ -449,15 +437,27 @@ class _ReportFormScreenState extends State<ReportFormScreen>
             title: 'Fotos',
             children: [
               _buildPhotoSelector(
-                title: 'Foto antes',
-                path: _beforePhotoPath,
+                title: 'Antes del Servicio',
+                paths: _beforePhotoPaths,
                 type: ReportPhotoType.before,
               ),
               const SizedBox(height: 16),
               _buildPhotoSelector(
-                title: 'Foto despues',
-                path: _afterPhotoPath,
+                title: 'Estado Final',
+                paths: _afterPhotoPaths,
                 type: ReportPhotoType.after,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSectionCard(
+            title: 'Observaciones y recomendaciones',
+            children: [
+              _buildTextField(
+                controller: _observationsController,
+                label: 'Observaciones y recomendaciones',
+                fieldKey: 'observations',
+                maxLines: 4,
               ),
             ],
           ),
@@ -577,12 +577,14 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
   Widget _buildPhotoSelector({
     required String title,
-    required String path,
+    required List<String> paths,
     required ReportPhotoType type,
   }) {
     final isBusy = _photoBeingPicked == type;
-    final hasImage = path.trim().isNotEmpty && File(path).existsSync();
     final hasError = _hasFieldError(_photoFieldKey(type));
+    final helperText = paths.isEmpty
+        ? 'Aun no agregas imagenes.'
+        : 'Manten presionado el icono para arrastrar y ordenar.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,10 +594,22 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 10),
-        Container(
+        OutlinedButton.icon(
+          onPressed: isBusy ? null : () => _pickPhotos(type),
+          icon: isBusy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                )
+              : const Icon(Icons.photo_library_outlined),
+          label: Text(isBusy ? 'Cargando...' : 'Agregar desde galeria'),
+        ),
+        const SizedBox(height: 10),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
           width: double.infinity,
-          height: 180,
-          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
@@ -606,26 +620,45 @@ class _ReportFormScreenState extends State<ReportFormScreen>
               width: hasError ? 1.6 : 1,
             ),
           ),
-          child: hasImage
-              ? Image.file(File(path), fit: BoxFit.cover)
-              : const Center(child: Text('Imagen no seleccionada')),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${paths.length} ${paths.length == 1 ? 'imagen cargada' : 'imagenes cargadas'}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                helperText,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (paths.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  buildDefaultDragHandles: false,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: paths.length,
+                  onReorder: (oldIndex, newIndex) =>
+                      _reorderPhotos(type, oldIndex, newIndex),
+                  itemBuilder: (context, index) {
+                    final path = paths[index];
+                    return _buildPhotoListItem(
+                      key: ValueKey('${type.name}-$path'),
+                      type: type,
+                      index: index,
+                      path: path,
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: isBusy ? null : () => _pickPhoto(type),
-          icon: isBusy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                )
-              : const Icon(Icons.photo_library_outlined),
-          label: Text(isBusy ? 'Cargando...' : 'Elegir desde galeria'),
-        ),
-        if (hasError && path.trim().isEmpty) ...[
+        if (hasError && paths.isEmpty) ...[
           const SizedBox(height: 6),
           Text(
-            'Selecciona esta foto.',
+            'Agrega al menos una imagen en esta seccion.',
             style: TextStyle(
               color: Theme.of(context).colorScheme.error,
               fontSize: 12,
@@ -633,6 +666,69 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPhotoListItem({
+    required Key key,
+    required ReportPhotoType type,
+    required int index,
+    required String path,
+  }) {
+    final file = File(path);
+    final exists = file.existsSync();
+
+    return Container(
+      key: key,
+      margin: EdgeInsets.only(
+        bottom: index == _photoPathsFor(type).length - 1 ? 0 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 58,
+            height: 58,
+            child: exists
+                ? Image.file(file, fit: BoxFit.cover)
+                : ColoredBox(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    child: const Icon(Icons.broken_image_outlined),
+                  ),
+          ),
+        ),
+        title: Text('Imagen ${index + 1}'),
+        subtitle: Text(
+          exists ? _fileNameFromPath(path) : 'Archivo no disponible',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'Quitar foto',
+              onPressed: () => _removePhoto(type, index),
+              icon: const Icon(Icons.delete_outline),
+            ),
+            ReorderableDelayedDragStartListener(
+              index: index,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.drag_handle),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -654,24 +750,23 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     _markFormChanged();
   }
 
-  Future<void> _pickPhoto(ReportPhotoType type) async {
+  Future<void> _pickPhotos(ReportPhotoType type) async {
     setState(() {
       _photoBeingPicked = type;
     });
 
     try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      final pickedFiles = await _imagePicker.pickMultiImage(
         imageQuality: 90,
       );
 
-      if (pickedFile == null || !mounted) {
+      if (pickedFiles.isEmpty || !mounted) {
         return;
       }
 
-      final updatedReport = await widget.reportService.attachPhoto(
+      final updatedReport = await widget.reportService.attachPhotos(
         report: _buildReportFromFields(),
-        sourcePath: pickedFile.path,
+        sourcePaths: pickedFiles.map((file) => file.path).toList(growable: false),
         type: type,
       );
 
@@ -681,8 +776,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
       setState(() {
         _workingReport = updatedReport;
-        _beforePhotoPath = updatedReport.photos.beforePath;
-        _afterPhotoPath = updatedReport.photos.afterPath;
+        _beforePhotoPaths = List<String>.from(updatedReport.photos.beforePaths);
+        _afterPhotoPaths = List<String>.from(updatedReport.photos.afterPaths);
       });
       _clearFieldError(_photoFieldKey(type));
       _markFormChanged(immediate: true);
@@ -739,6 +834,9 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       _workingReport = savedReport;
       _hasPendingChanges = false;
       await widget.editingSessionService.clearActiveReportUuid();
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
@@ -800,8 +898,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         role: _clientRoleController.text.trim(),
       ),
       photos: _workingReport.photos.copyWith(
-        beforePath: _beforePhotoPath,
-        afterPath: _afterPhotoPath,
+        beforePaths: List<String>.from(_beforePhotoPaths),
+        afterPaths: List<String>.from(_afterPhotoPaths),
       ),
     );
   }
@@ -898,8 +996,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         report.technician.identification.trim().isNotEmpty ||
         report.clientContact.name.trim().isNotEmpty ||
         report.clientContact.role.trim().isNotEmpty ||
-        report.photos.beforePath.trim().isNotEmpty ||
-        report.photos.afterPath.trim().isNotEmpty) {
+        report.photos.beforePaths.isNotEmpty ||
+        report.photos.afterPaths.isNotEmpty) {
       return true;
     }
 
@@ -973,10 +1071,10 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     if (report.clientContact.role.trim().isEmpty) {
       invalidFields.add('client_role');
     }
-    if (report.photos.beforePath.trim().isEmpty) {
+    if (report.photos.beforePaths.isEmpty) {
       invalidFields.add(_photoFieldKey(ReportPhotoType.before));
     }
-    if (report.photos.afterPath.trim().isEmpty) {
+    if (report.photos.afterPaths.isEmpty) {
       invalidFields.add(_photoFieldKey(ReportPhotoType.after));
     }
 
@@ -1000,6 +1098,61 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
   String _photoFieldKey(ReportPhotoType type) {
     return type == ReportPhotoType.before ? 'before_photo' : 'after_photo';
+  }
+
+  List<String> _photoPathsFor(ReportPhotoType type) {
+    return type == ReportPhotoType.before
+        ? _beforePhotoPaths
+        : _afterPhotoPaths;
+  }
+
+  void _reorderPhotos(ReportPhotoType type, int oldIndex, int newIndex) {
+    final updatedPaths = List<String>.from(_photoPathsFor(type));
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    final moved = updatedPaths.removeAt(oldIndex);
+    updatedPaths.insert(newIndex, moved);
+
+    setState(() {
+      _updatePhotoPaths(type, updatedPaths);
+    });
+    _markFormChanged(immediate: true);
+  }
+
+  void _removePhoto(ReportPhotoType type, int index) {
+    final updatedPaths = List<String>.from(_photoPathsFor(type));
+    updatedPaths.removeAt(index);
+
+    setState(() {
+      _updatePhotoPaths(type, updatedPaths);
+    });
+    _markFormChanged(immediate: true);
+  }
+
+  void _updatePhotoPaths(ReportPhotoType type, List<String> paths) {
+    if (type == ReportPhotoType.before) {
+      _beforePhotoPaths = paths;
+      _workingReport = _workingReport.copyWith(
+        photos: _workingReport.photos.copyWith(beforePaths: paths),
+      );
+      return;
+    }
+
+    _afterPhotoPaths = paths;
+    _workingReport = _workingReport.copyWith(
+      photos: _workingReport.photos.copyWith(afterPaths: paths),
+    );
+  }
+
+  String _fileNameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final lastSeparator = normalized.lastIndexOf('/');
+    if (lastSeparator == -1) {
+      return normalized;
+    }
+    return normalized.substring(lastSeparator + 1);
   }
 
   String _formatDate(DateTime value) {

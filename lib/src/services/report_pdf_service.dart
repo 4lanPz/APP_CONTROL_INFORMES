@@ -27,8 +27,8 @@ class ReportPdfService {
     );
 
     final logoImage = await _loadOptionalImage(logoPath);
-    final beforeImage = await _loadOptionalImage(report.photos.beforePath);
-    final afterImage = await _loadOptionalImage(report.photos.afterPath);
+    final beforeImages = await _loadOptionalImages(report.photos.beforePaths);
+    final afterImages = await _loadOptionalImages(report.photos.afterPaths);
     final templateBackground = await _loadTemplateBackground();
 
     document.addPage(
@@ -166,7 +166,9 @@ class ReportPdfService {
             ),
             pw.SizedBox(height: 12),
             _buildSectionTitle('Evidencia fotografica'),
-            _buildPhotosRow(beforeImage, afterImage),
+            _buildPhotoSection('Antes del Servicio', beforeImages),
+            pw.SizedBox(height: 10),
+            _buildPhotoSection('Estado Final', afterImages),
             pw.SizedBox(height: 18),
             _buildSignatureRow(),
           ];
@@ -355,44 +357,56 @@ class ReportPdfService {
     );
   }
 
-  pw.Widget _buildPhotosRow(
-    pw.MemoryImage? beforeImage,
-    pw.MemoryImage? afterImage,
-  ) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(top: 8),
-      child: pw.Row(
-        children: [
-          pw.Expanded(child: _buildPhotoCard('Antes', beforeImage)),
-          pw.SizedBox(width: 12),
-          pw.Expanded(child: _buildPhotoCard('Despues', afterImage)),
-        ],
+  pw.Widget _buildPhotoSection(String title, List<pw.MemoryImage> images) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          title,
+          style: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 11,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        if (images.isEmpty)
+          _buildEmptyPhotoCard()
+        else
+          pw.Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: images
+                .map((image) => _buildPhotoCard(image: image))
+                .toList(growable: false),
+          ),
+      ],
+    );
+  }
+
+  pw.Widget _buildPhotoCard({
+    required pw.MemoryImage image,
+  }) {
+    return pw.Container(
+      width: 165,
+      height: 125,
+      padding: const pw.EdgeInsets.all(4),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey500),
+      ),
+      child: pw.Center(
+        child: pw.Image(image, fit: pw.BoxFit.cover),
       ),
     );
   }
 
-  pw.Widget _buildPhotoCard(String title, pw.MemoryImage? image) {
+  pw.Widget _buildEmptyPhotoCard() {
     return pw.Container(
-      height: 180,
-      padding: const pw.EdgeInsets.all(8),
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey500),
       ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        children: [
-          pw.Text(
-            title,
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Expanded(
-            child: image == null
-                ? pw.Center(child: pw.Text('Imagen no disponible'))
-                : pw.Image(image, fit: pw.BoxFit.contain),
-          ),
-        ],
-      ),
+      child: pw.Text('No hay imagenes disponibles para esta seccion.'),
     );
   }
 
@@ -458,6 +472,19 @@ class ReportPdfService {
 
     final bytes = await file.readAsBytes();
     return pw.MemoryImage(bytes);
+  }
+
+  Future<List<pw.MemoryImage>> _loadOptionalImages(List<String> paths) async {
+    final images = <pw.MemoryImage>[];
+
+    for (final path in paths) {
+      final image = await _loadOptionalImage(path);
+      if (image != null) {
+        images.add(image);
+      }
+    }
+
+    return images;
   }
 
   String _formatDate(DateTime value) {

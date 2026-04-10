@@ -1,7 +1,6 @@
 package com.example.app_control_informes
 
 import android.content.ContentValues
-import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -9,7 +8,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 
 class MainActivity : FlutterActivity() {
@@ -60,11 +58,13 @@ class MainActivity : FlutterActivity() {
         subdirectory: String,
         bytes: ByteArray,
     ): String {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            savePdfWithMediaStore(fileName, subdirectory, bytes)
-        } else {
-            savePdfLegacy(fileName, subdirectory, bytes)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            throw IOException(
+                "Guardar PDFs en Descargas requiere Android 10 o superior.",
+            )
         }
+
+        return savePdfWithMediaStore(fileName, subdirectory, bytes)
     }
 
     private fun savePdfWithMediaStore(
@@ -100,40 +100,6 @@ class MainActivity : FlutterActivity() {
             resolver.delete(itemUri, null, null)
             throw error
         }
-    }
-
-    private fun savePdfLegacy(
-        fileName: String,
-        subdirectory: String,
-        bytes: ByteArray,
-    ): String {
-        val downloadsRoot = Environment.getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_DOWNLOADS,
-        )
-        val targetDirectory = if (subdirectory.isBlank()) {
-            downloadsRoot
-        } else {
-            File(downloadsRoot, subdirectory)
-        }
-
-        if (!targetDirectory.exists() && !targetDirectory.mkdirs()) {
-            throw IOException("No se pudo crear la carpeta de Descargas.")
-        }
-
-        val file = File(targetDirectory, fileName)
-        FileOutputStream(file).use { output ->
-            output.write(bytes)
-            output.flush()
-        }
-
-        MediaScannerConnection.scanFile(
-            this,
-            arrayOf(file.absolutePath),
-            arrayOf(PDF_MIME_TYPE),
-            null,
-        )
-
-        return file.absolutePath
     }
 
     private fun buildRelativeDownloadsPath(subdirectory: String): String {

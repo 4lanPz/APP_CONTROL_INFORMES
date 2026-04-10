@@ -294,23 +294,27 @@ class ClientContactInfo {
 
 class ReportPhotos {
   const ReportPhotos({
-    required this.beforePath,
-    required this.afterPath,
+    required this.beforePaths,
+    required this.afterPaths,
   });
 
-  final String beforePath;
-  final String afterPath;
+  final List<String> beforePaths;
+  final List<String> afterPaths;
+
+  String get beforePath => beforePaths.isEmpty ? '' : beforePaths.first;
+
+  String get afterPath => afterPaths.isEmpty ? '' : afterPaths.first;
 
   bool get isComplete =>
-      beforePath.trim().isNotEmpty && afterPath.trim().isNotEmpty;
+      beforePaths.isNotEmpty && afterPaths.isNotEmpty;
 
   ReportPhotos copyWith({
-    String? beforePath,
-    String? afterPath,
+    List<String>? beforePaths,
+    List<String>? afterPaths,
   }) {
     return ReportPhotos(
-      beforePath: beforePath ?? this.beforePath,
-      afterPath: afterPath ?? this.afterPath,
+      beforePaths: beforePaths ?? this.beforePaths,
+      afterPaths: afterPaths ?? this.afterPaths,
     );
   }
 
@@ -318,14 +322,44 @@ class ReportPhotos {
     return {
       'antes_ruta_local': beforePath,
       'despues_ruta_local': afterPath,
+      'antes_rutas_locales': beforePaths,
+      'despues_rutas_locales': afterPaths,
     };
   }
 
   factory ReportPhotos.fromJson(Map<String, dynamic> json) {
-    return ReportPhotos(
-      beforePath: (json['antes_ruta_local'] ?? '') as String,
-      afterPath: (json['despues_ruta_local'] ?? '') as String,
+    final beforePaths = _readPathList(
+      json['antes_rutas_locales'],
+      fallback: json['antes_ruta_local'],
     );
+    final afterPaths = _readPathList(
+      json['despues_rutas_locales'],
+      fallback: json['despues_ruta_local'],
+    );
+
+    return ReportPhotos(
+      beforePaths: beforePaths,
+      afterPaths: afterPaths,
+    );
+  }
+
+  static List<String> _readPathList(
+    Object? value, {
+    Object? fallback,
+  }) {
+    if (value is List) {
+      return value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+
+    final fallbackValue = fallback?.toString().trim() ?? '';
+    if (fallbackValue.isEmpty) {
+      return const [];
+    }
+
+    return <String>[fallbackValue];
   }
 }
 

@@ -208,6 +208,12 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final isWideLayout = screenSize.width >= 720;
+    final actionBottomSpacing =
+        isWideLayout ? 12.0 : (screenSize.height < 700 ? 6.0 : 10.0);
+    final formBottomSpacing = isWideLayout ? 24.0 : 16.0;
+
     return Scaffold(
       appBar: AppBar(
         title: DraftAppBarTitle(
@@ -216,8 +222,9 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        minimum: EdgeInsets.fromLTRB(16, 8, 16, actionBottomSpacing),
+        child: SizedBox(
+          width: double.infinity,
           child: FilledButton.icon(
             onPressed: _isSaving ? null : _saveReport,
             icon: _isSaving
@@ -232,7 +239,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, formBottomSpacing),
         children: [
           _buildSectionCard(
             title: 'Datos generales',
@@ -991,10 +998,14 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const FractionallySizedBox(
-        heightFactor: 0.9,
-        child: SignatureCaptureScreen(title: 'Firma del técnico'),
-      ),
+      builder: (context) {
+        final width = MediaQuery.sizeOf(context).width;
+        final heightFactor = width >= 900 ? 0.82 : 0.92;
+        return FractionallySizedBox(
+          heightFactor: heightFactor,
+          child: const SignatureCaptureScreen(title: 'Firma del técnico'),
+        );
+      },
     );
 
     if (!mounted || signatureBytes == null) {
@@ -1042,10 +1053,14 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const FractionallySizedBox(
-        heightFactor: 0.9,
-        child: SignatureCaptureScreen(title: 'Firma del cliente'),
-      ),
+      builder: (context) {
+        final width = MediaQuery.sizeOf(context).width;
+        final heightFactor = width >= 900 ? 0.82 : 0.92;
+        return FractionallySizedBox(
+          heightFactor: heightFactor,
+          child: const SignatureCaptureScreen(title: 'Firma del cliente'),
+        );
+      },
     );
 
     if (!mounted || signatureBytes == null) {

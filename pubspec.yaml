@@ -1,4 +1,4 @@
-name: app_control_informes
+﻿name: app_control_informes
 description: Offline-first Android app for generator maintenance reports.
 publish_to: "none"
 version: 0.1.0+1
@@ -17,10 +17,12 @@ dependencies:
   printing: ^5.13.4
   sqflite: ^2.4.1
   supabase_flutter: ^2.8.0
+  url_launcher: ^6.3.1
   uuid: ^4.5.1
 
 dev_dependencies:
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
   flutter_test:
     sdk: flutter
 
@@ -29,3 +31,8 @@ flutter:
   assets:
     - Formulario_base.pdf
 
+
+flutter_launcher_icons:
+  android: true
+  image_path: "TecnoReport.png"
+  min_sdk_android: 21

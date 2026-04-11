@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
@@ -7,6 +7,7 @@ import '../../domain/models/maintenance_report.dart';
 import '../../services/app_error_formatter.dart';
 import '../../services/editing_session_service.dart';
 import '../widgets/draft_app_bar_title.dart';
+import 'developer_info_screen.dart';
 import 'report_form_screen.dart';
 
 class ReportsHomeScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const DraftAppBarTitle('Informes de mantenimiento'),
+        title: const DraftAppBarTitle('TecnoReport'),
         actions: [
           IconButton(
             tooltip: 'Sincronizar pendientes',
@@ -65,6 +66,11 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2.2),
                   )
                 : const Icon(Icons.sync),
+          ),
+          IconButton(
+            tooltip: 'Info',
+            onPressed: _openDeveloperInfo,
+            icon: const Icon(Icons.info_outline),
           ),
         ],
       ),
@@ -565,6 +571,14 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         );
       });
     }
+  }
+
+  Future<void> _openDeveloperInfo() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DeveloperInfoScreen(),
+      ),
+    );
   }
 
   Future<void> _generatePdf(MaintenanceReport report) async {

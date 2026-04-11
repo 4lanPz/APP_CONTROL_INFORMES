@@ -1,8 +1,8 @@
-﻿<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="Informes de Mantenimiento DEBUG"
+        android:label="TecnoReport DEBUG"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -34,4 +34,5 @@
         </intent>
     </queries>
 </manifest>
+
 

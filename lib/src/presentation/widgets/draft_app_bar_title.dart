@@ -33,7 +33,7 @@ class DraftAppBarTitle extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: const Text(
-            'BORRADOR',
+            'DEBUG',
             style: TextStyle(
               color: Colors.white,
               fontSize: 11,

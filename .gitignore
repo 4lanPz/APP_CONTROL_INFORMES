@@ -13,4 +13,5 @@ android/app/profile/
 android/app/release/
 ios/Flutter/.last_build_id
 *.lock
+config/*.local.json
 

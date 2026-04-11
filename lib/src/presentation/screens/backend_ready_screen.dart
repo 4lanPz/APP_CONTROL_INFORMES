@@ -4,6 +4,7 @@ import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/app_error_formatter.dart';
 import '../widgets/draft_app_bar_title.dart';
 
 class BackendReadyScreen extends StatefulWidget {
@@ -93,7 +94,7 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(
-                    'Todavia no hay informes. El backend ya esta conectado y listo para recibir el formulario real.',
+                    'Todavía no hay informes. El backend ya está conectado y listo para recibir el formulario real.',
                   ),
                 ),
               )
@@ -113,7 +114,7 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Estado tecnico',
+              'Estado técnico',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -133,9 +134,10 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text(report.location.trim().isEmpty ? report.uuid : report.location),
+        title: Text(
+            report.location.trim().isEmpty ? report.uuid : report.location),
         subtitle: Text(
-          'Tecnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}\n'
+          'Técnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}\n'
           'Estado: ${report.syncStatus.label}\n'
           'Fecha: ${_formatDate(report.serviceDate)}',
         ),
@@ -158,6 +160,7 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
       setState(() {
         _reports = reports;
         _isLoading = false;
+        _message = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -166,7 +169,11 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
 
       setState(() {
         _isLoading = false;
-        _message = 'Error cargando informes: $error';
+        _message = AppErrorFormatter.withPrefix(
+          'Error cargando informes',
+          error,
+          fallback: 'No se pudieron cargar los informes guardados.',
+        );
       });
     }
   }
@@ -182,7 +189,7 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
 
       setState(() {
         _message =
-            'Se creo un informe base con UUID ${draft.uuid}. Luego podemos conectarlo a la plantilla visual.';
+            'Se creó un informe base con UUID ${draft.uuid}. Luego podemos conectarlo a la plantilla visual.';
       });
 
       await _reload();
@@ -192,7 +199,11 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
       }
 
       setState(() {
-        _message = 'Error creando borrador: $error';
+        _message = AppErrorFormatter.withPrefix(
+          'Error creando borrador',
+          error,
+          fallback: 'No se pudo crear el informe base.',
+        );
       });
     }
   }
@@ -222,7 +233,11 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
 
       setState(() {
         _isSyncing = false;
-        _message = 'Error sincronizando: $error';
+        _message = AppErrorFormatter.withPrefix(
+          'Error sincronizando',
+          error,
+          fallback: 'No se pudieron sincronizar los informes pendientes.',
+        );
       });
     }
   }
@@ -231,7 +246,15 @@ class _BackendReadyScreenState extends State<BackendReadyScreen> {
     if (result.message != null && result.skipped) {
       return result.message!;
     }
-    return 'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
+
+    final summary =
+        'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
+    if (result.failedDetails.isEmpty) {
+      return summary;
+    }
+
+    final firstError = result.failedDetails.values.first;
+    return '$summary Primer error: $firstError';
   }
 
   String _formatDate(DateTime value) {

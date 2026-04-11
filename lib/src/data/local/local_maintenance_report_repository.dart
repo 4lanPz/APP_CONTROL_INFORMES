@@ -103,4 +103,3 @@ class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
     return '${value.year}-$month-$day';
   }
 }
-

@@ -2,17 +2,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/app_config.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/app_error_formatter.dart';
 
 class SyncBatchResult {
   const SyncBatchResult({
     this.successfulUuids = const [],
     this.failedUuids = const [],
+    this.failedDetails = const {},
     this.skipped = false,
     this.message,
   });
 
   final List<String> successfulUuids;
   final List<String> failedUuids;
+  final Map<String, String> failedDetails;
   final bool skipped;
   final String? message;
 
@@ -40,7 +43,7 @@ class SupabaseSyncService {
     if (!isEnabled) {
       return const SyncBatchResult(
         skipped: true,
-        message: 'Supabase no esta configurado en este build.',
+        message: 'Supabase no está configurado en este build.',
       );
     }
 
@@ -49,7 +52,15 @@ class SupabaseSyncService {
 
     final successfulUuids = <String>[];
     final failedUuids = <String>[];
+    final failedDetails = <String, String>{};
     final ownerUserId = client.auth.currentUser?.id;
+    if (ownerUserId == null || ownerUserId.trim().isEmpty) {
+      return const SyncBatchResult(
+        skipped: true,
+        message:
+            'No se pudo autenticar con Supabase. Verifica la anon key y la autenticación anónima.',
+      );
+    }
 
     for (final report in reports) {
       try {
@@ -58,17 +69,22 @@ class SupabaseSyncService {
               onConflict: 'uuid',
             );
         successfulUuids.add(report.uuid);
-      } catch (_) {
+      } catch (error) {
         failedUuids.add(report.uuid);
+        failedDetails[report.uuid] = AppErrorFormatter.format(
+          error,
+          fallback: 'No se pudo sincronizar este informe.',
+        );
       }
     }
 
     return SyncBatchResult(
       successfulUuids: successfulUuids,
       failedUuids: failedUuids,
+      failedDetails: failedDetails,
       message: failedUuids.isEmpty
           ? 'Sincronización completada.'
-          : 'Sincronización parcial.',
+          : 'Sincronización parcial. Revisa los informes con error.',
     );
   }
 
@@ -116,4 +132,3 @@ class SupabaseSyncService {
     return '${value.year}-$month-$day';
   }
 }
-

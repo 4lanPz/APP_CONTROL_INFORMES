@@ -1,4 +1,4 @@
-package com.example.app_control_informes
+﻿package com.a4lanpz.app_control_informes
 
 import android.content.ContentValues
 import android.os.Build
@@ -130,3 +130,4 @@ class MainActivity : FlutterActivity() {
         const val PDF_MIME_TYPE = "application/pdf"
     }
 }
+

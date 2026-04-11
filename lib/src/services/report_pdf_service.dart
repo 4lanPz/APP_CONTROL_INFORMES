@@ -51,9 +51,8 @@ class ReportPdfService {
                       fit: pw.BoxFit.fill,
                     ),
                   ),
-          buildForeground: _showDraftWatermark
-              ? (context) => _buildDraftWatermark()
-              : null,
+          buildForeground:
+              _showDraftWatermark ? (context) => _buildDraftWatermark() : null,
         ),
         build: (context) {
           return pw.Padding(
@@ -143,9 +142,8 @@ class ReportPdfService {
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(24),
-          buildForeground: _showDraftWatermark
-              ? (context) => _buildDraftWatermark()
-              : null,
+          buildForeground:
+              _showDraftWatermark ? (context) => _buildDraftWatermark() : null,
         ),
         build: (context) {
           return [
@@ -323,7 +321,7 @@ class ReportPdfService {
           _tableCell('Sistema', isHeader: true),
           _tableCell('Item', isHeader: true),
           _tableCell('Estado', isHeader: true),
-            _tableCell('Observación', isHeader: true),
+          _tableCell('Observación', isHeader: true),
         ],
       ),
       ...checklist.map(

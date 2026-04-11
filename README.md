@@ -12,12 +12,16 @@ El proyecto ya tiene una base funcional usable para pruebas reales en Android.
 - guardado local de informes en SQLite
 - edicion de informes existentes
 - listado de informes guardados con estado de sincronizacion
-- seleccion de 2 fotos desde la galeria:
-  - foto antes
-  - foto despues
+- seleccion de multiples fotos desde la galeria por bloque:
+  - antes del servicio
+  - estado final
 - copiado local de fotos para mantenerlas bajo control de la app
+- captura de firma del tecnico
+- captura de firma del cliente
 - generacion local de PDF
 - guardado del PDF en `Descargas/Informes Generados` en Android
+- inclusion de firmas dentro del PDF
+- inclusion de multiples fotos dentro del PDF
 - preparacion para sincronizacion futura con Supabase
 - estados de sincronizacion:
   - `pending_sync`
@@ -35,7 +39,6 @@ El proyecto ya tiene una base funcional usable para pruebas reales en Android.
 - mejora de restauracion total del estado visual si se quiere comportamiento mas cercano a apps como WhatsApp
 - compartir PDF desde la app
 - captura de foto con camara dentro de la app
-- firma digital o captura de firma
 - autenticacion de usuarios
 - panel web o backoffice
 
@@ -46,6 +49,8 @@ El proyecto ya tiene una base funcional usable para pruebas reales en Android.
 - el PDF ahora se guarda en la carpeta publica `Downloads/Informes Generados`
 - se agrego marca de agua `BORRADOR`
 - el texto de marca de agua se puede quitar facil despues
+- el PDF ya incluye firmas de tecnico y cliente
+- el PDF ya puede mostrar varias fotos por bloque
 
 Archivo principal:
 - `lib/src/services/report_pdf_service.dart`
@@ -55,6 +60,9 @@ Archivo principal:
 - el formulario ahora se auto guarda en segundo plano
 - si Android mata la app, al volver se intenta reabrir el ultimo informe en edicion
 - ya no se muestra debajo de cada foto la ruta local del archivo
+- el formulario permite cargar varias fotos antes y varias fotos finales
+- las fotos cargadas se pueden reordenar y quitar
+- el formulario ya pide firma de tecnico y firma de cliente
 
 Archivos principales:
 - `lib/src/presentation/screens/report_form_screen.dart`
@@ -74,17 +82,19 @@ Archivo principal:
 1. El usuario abre la app.
 2. Crea un informe nuevo o edita uno existente.
 3. Llena el formulario.
-4. Adjunta 2 fotos desde la galeria.
-5. El formulario se va guardando localmente mientras se edita.
-6. Si la app pasa a segundo plano y Android la reinicia, al volver intenta abrir otra vez el informe que estaba en edicion.
-7. Al guardar, el informe queda persistido localmente con estado `pending_sync`.
-8. Cuando el usuario lo necesite, puede generar el PDF.
-9. El PDF se guarda en `Descargas/Informes Generados`.
+4. Adjunta una o varias fotos en las secciones de antes del servicio y estado final.
+5. Captura la firma del tecnico y la firma del cliente.
+6. El formulario se va guardando localmente mientras se edita.
+7. Si la app pasa a segundo plano y Android la reinicia, al volver intenta abrir otra vez el informe que estaba en edicion.
+8. Al guardar, el informe queda persistido localmente con estado `pending_sync`.
+9. Cuando el usuario lo necesite, puede generar el PDF.
+10. El PDF se guarda en `Descargas/Informes Generados`.
 
 ## Reglas funcionales ya aplicadas
 
 - todos los campos del formulario son obligatorios por ahora
-- solo se usan 2 fotos por informe
+- las firmas del tecnico y del cliente son obligatorias
+- debe existir al menos una foto antes y una foto despues
 - las fotos se seleccionan desde la galeria
 - las fotos no se suben a Supabase en esta version
 - el PDF no se guarda en ninguna base de datos online
@@ -113,6 +123,41 @@ Archivo principal:
   - PDF, archivos, validacion y sesion de edicion
 - `android/`
   - integracion nativa Android para guardar PDF en Descargas
+
+## Estado actual por area
+
+### Pantalla principal
+
+- lista informes pendientes, enviados y con error
+- permite crear informe nuevo
+- permite editar informes existentes
+- permite generar PDF
+- intenta reabrir el ultimo informe en edicion si la app fue reiniciada por Android
+
+### Formulario
+
+- datos generales, equipo, checklist, pruebas, actividades, observaciones y validacion
+- auto guardado local durante la edicion
+- multiples fotos por seccion
+- eliminacion y reordenamiento de fotos
+- captura de firma para tecnico y cliente
+- validacion de campos obligatorios antes de guardar
+
+### PDF
+
+- usa la plantilla base `Formulario_base.pdf`
+- agrega marca de agua `BORRADOR`
+- incluye datos del informe
+- incluye multiples fotos antes y despues
+- incluye firmas de tecnico y cliente
+- se guarda en `Descargas/Informes Generados` en Android
+
+### Datos y sincronizacion
+
+- almacenamiento local en SQLite
+- modelo preparado para sincronizar JSON con Supabase
+- estados de sync visibles en la app
+- no se suben fotos ni PDF al backend en esta etapa
 
 ## Modo borrador
 
@@ -144,6 +189,8 @@ Eso no es un problema del codigo funcional de la app, sino del entorno local de 
 - generar APK de prueba
 - validar en telefono el flujo completo:
   - llenar formulario
+  - cargar varias fotos
+  - firmar tecnico y cliente
   - minimizar app
   - retomar informe
   - generar PDF

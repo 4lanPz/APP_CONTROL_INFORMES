@@ -4,6 +4,7 @@ import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/app_error_formatter.dart';
 import '../../services/editing_session_service.dart';
 import '../widgets/draft_app_bar_title.dart';
 import 'report_form_screen.dart';
@@ -492,7 +493,11 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
       setState(() {
         _isLoading = false;
-        _message = 'Error cargando informes: $error';
+        _message = AppErrorFormatter.withPrefix(
+          'Error cargando informes',
+          error,
+          fallback: 'No se pudieron cargar los informes guardados.',
+        );
       });
     }
   }
@@ -553,7 +558,11 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
       setState(() {
         _isSyncing = false;
-        _message = 'Error sincronizando: $error';
+        _message = AppErrorFormatter.withPrefix(
+          'Error sincronizando',
+          error,
+          fallback: 'No se pudieron sincronizar los informes pendientes.',
+        );
       });
     }
   }
@@ -582,7 +591,13 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se pudo generar el PDF: $error'),
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo generar el PDF',
+              error,
+              fallback: 'Verifica el almacenamiento del dispositivo.',
+            ),
+          ),
         ),
       );
     } finally {
@@ -598,7 +613,15 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     if (result.message != null && result.skipped) {
       return result.message!;
     }
-    return 'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
+
+    final summary =
+        'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
+    if (result.failedDetails.isEmpty) {
+      return summary;
+    }
+
+    final firstError = result.failedDetails.values.first;
+    return '$summary Primer error: $firstError';
   }
 
   String _buildPdfSavedMessage(String filePath) {

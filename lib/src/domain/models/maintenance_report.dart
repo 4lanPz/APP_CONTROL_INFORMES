@@ -192,8 +192,8 @@ class TestMeasurements {
       frequencyHz: frequencyHz ?? this.frequencyHz,
       oilPressurePsi: oilPressurePsi ?? this.oilPressurePsi,
       temperatureC: temperatureC ?? this.temperatureC,
-      hasAbnormalNoiseOrVibration: hasAbnormalNoiseOrVibration ??
-          this.hasAbnormalNoiseOrVibration,
+      hasAbnormalNoiseOrVibration:
+          hasAbnormalNoiseOrVibration ?? this.hasAbnormalNoiseOrVibration,
     );
   }
 
@@ -205,8 +205,7 @@ class TestMeasurements {
       'frecuencia_hz': frequencyHz,
       'presion_aceite_psi': oilPressurePsi,
       'temperatura_c': temperatureC,
-      'ruidos_vibraciones_anormales':
-          hasAbnormalNoiseOrVibration ? 'si' : 'no',
+      'ruidos_vibraciones_anormales': hasAbnormalNoiseOrVibration ? 'si' : 'no',
     };
   }
 
@@ -305,8 +304,7 @@ class ReportPhotos {
 
   String get afterPath => afterPaths.isEmpty ? '' : afterPaths.first;
 
-  bool get isComplete =>
-      beforePaths.isNotEmpty && afterPaths.isNotEmpty;
+  bool get isComplete => beforePaths.isNotEmpty && afterPaths.isNotEmpty;
 
   ReportPhotos copyWith({
     List<String>? beforePaths,
@@ -443,8 +441,8 @@ class MaintenanceReport {
       checklist: checklist ?? this.checklist,
       tests: tests ?? this.tests,
       activitiesAndParts: activitiesAndParts ?? this.activitiesAndParts,
-      observationsAndRecommendations: observationsAndRecommendations ??
-          this.observationsAndRecommendations,
+      observationsAndRecommendations:
+          observationsAndRecommendations ?? this.observationsAndRecommendations,
       technician: technician ?? this.technician,
       technicianSignaturePath:
           technicianSignaturePath ?? this.technicianSignaturePath,
@@ -551,4 +549,3 @@ class MaintenanceReport {
     return '${value.year}-$month-$day';
   }
 }
-

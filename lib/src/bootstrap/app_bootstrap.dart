@@ -45,7 +45,9 @@ class AppBootstrap {
       );
     }
 
-    final database = AppDatabase();
+    final database = AppDatabase(
+      databaseName: config.localDatabaseName,
+    );
     await database.open();
 
     final reportRepository = LocalMaintenanceReportRepository(database);

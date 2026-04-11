@@ -3,9 +3,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class AppDatabase {
-  static const _databaseName = 'app_control_informes.db';
   static const _databaseVersion = 1;
   static const reportsTable = 'reports';
+
+  AppDatabase({
+    required this.databaseName,
+  });
+
+  final String databaseName;
 
   Database? _database;
 
@@ -15,7 +20,7 @@ class AppDatabase {
     }
 
     final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = p.join(documentsDirectory.path, _databaseName);
+    final path = p.join(documentsDirectory.path, databaseName);
 
     _database = await openDatabase(
       path,
@@ -60,4 +65,3 @@ class AppDatabase {
     _database = null;
   }
 }
-

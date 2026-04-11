@@ -3,7 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.maintenance_reports (
   id uuid primary key default gen_random_uuid(),
   uuid text not null unique,
-  owner_user_id uuid references auth.users (id) on delete set null,
+  owner_user_id uuid not null references auth.users (id) on delete cascade,
   service_date date not null,
   maintenance_type text not null,
   location text not null default '',
@@ -27,26 +27,22 @@ create policy "maintenance_reports_select_own"
   on public.maintenance_reports
   for select
   using (
-    owner_user_id is null
-    or auth.uid() = owner_user_id
+    auth.uid() = owner_user_id
   );
 
 create policy "maintenance_reports_insert_own"
   on public.maintenance_reports
   for insert
   with check (
-    owner_user_id is null
-    or auth.uid() = owner_user_id
+    auth.uid() = owner_user_id
   );
 
 create policy "maintenance_reports_update_own"
   on public.maintenance_reports
   for update
   using (
-    owner_user_id is null
-    or auth.uid() = owner_user_id
+    auth.uid() = owner_user_id
   )
   with check (
-    owner_user_id is null
-    or auth.uid() = owner_user_id
+    auth.uid() = owner_user_id
   );

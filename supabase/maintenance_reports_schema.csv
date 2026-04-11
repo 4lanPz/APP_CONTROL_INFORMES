@@ -1,0 +1,13 @@
+﻿name,type,default value
+id,uuid,gen_random_uuid()
+uuid,text,
+owner_user_id,uuid,
+service_date,date,
+maintenance_type,text,
+location,text,''
+technician_name,text,''
+sync_status,text,'pending_sync'
+report_json,jsonb,
+created_at,timestamptz,now()
+updated_at,timestamptz,now()
+synced_at,timestamptz,

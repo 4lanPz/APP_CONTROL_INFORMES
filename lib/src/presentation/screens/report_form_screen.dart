@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../application/report_workflow_service.dart';
 import '../../domain/models/maintenance_report.dart';
+import '../../services/app_error_formatter.dart';
 import '../../services/editing_session_service.dart';
 import '../../services/report_file_service.dart';
 import '../widgets/draft_app_bar_title.dart';
@@ -877,7 +878,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
       final updatedReport = await widget.reportService.attachPhotos(
         report: _buildReportFromFields(),
-        sourcePaths: pickedFiles.map((file) => file.path).toList(growable: false),
+        sourcePaths:
+            pickedFiles.map((file) => file.path).toList(growable: false),
         type: type,
       );
 
@@ -898,7 +900,16 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo cargar la foto: $error')),
+        SnackBar(
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo cargar la foto',
+              error,
+              fallback:
+                  'Verifica los permisos de galería o el archivo elegido.',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -955,7 +966,15 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar el informe: $error')),
+        SnackBar(
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo guardar el informe',
+              error,
+              fallback: 'Revisa el almacenamiento local del dispositivo.',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -983,7 +1002,8 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     }
 
     try {
-      final updatedReport = await widget.reportService.attachTechnicianSignature(
+      final updatedReport =
+          await widget.reportService.attachTechnicianSignature(
         report: _buildReportFromFields(),
         bytes: signatureBytes,
       );
@@ -1004,7 +1024,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se pudo guardar la firma: $error'),
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo guardar la firma',
+              error,
+              fallback: 'Intenta nuevamente con una firma nueva.',
+            ),
+          ),
         ),
       );
     }
@@ -1048,7 +1074,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se pudo guardar la firma: $error'),
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo guardar la firma',
+              error,
+              fallback: 'Intenta nuevamente con una firma nueva.',
+            ),
+          ),
         ),
       );
     }

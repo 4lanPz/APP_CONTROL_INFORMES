@@ -87,7 +87,7 @@ class ReportFileService {
         );
       } on MissingPluginException {
         throw const FileSystemException(
-          'La integracion con Descargas no esta disponible en este dispositivo.',
+          'La integración con Descargas no está disponible en este dispositivo.',
         );
       } on PlatformException {
         throw const FileSystemException(

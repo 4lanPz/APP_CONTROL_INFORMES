@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../services/app_error_formatter.dart';
+
 class SignatureCaptureScreen extends StatefulWidget {
   const SignatureCaptureScreen({
     super.key,
@@ -54,7 +56,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
                 ),
                 IconButton(
                   tooltip: 'Cerrar',
-                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                  onPressed:
+                      _isSaving ? null : () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
                 ),
               ],
@@ -184,7 +187,13 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se pudo guardar la firma: $error'),
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo guardar la firma',
+              error,
+              fallback: 'Intenta nuevamente después de firmar otra vez.',
+            ),
+          ),
         ),
       );
     } finally {

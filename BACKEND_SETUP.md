@@ -1,39 +1,84 @@
 # Backend Setup
 
-## 1. Instalar Flutter
+## Qué se configura aquí
 
-Necesitas tener `flutter` y `dart` disponibles en tu PATH.
+La app usa dos capas distintas:
 
-## 2. Generar archivos nativos de Flutter
+- SQLite local para guardar los informes en el dispositivo
+- Supabase para sincronizar el JSON de los informes a la nube
 
-Este repositorio ya tiene la base de `lib/` y `pubspec.yaml`, pero como en este entorno no estaba instalado Flutter, aun no se generaron las carpetas nativas.
+SQLite en este proyecto no usa usuario, contraseña ni servidor. Es solo un archivo local dentro del dispositivo. Lo que sí parametrizamos es el nombre del archivo y los valores de Supabase.
 
-Cuando ya tengas Flutter instalado, ejecuta:
+## Variables disponibles
 
-```bash
-flutter create --platforms=android .
+La app lee estas variables en tiempo de compilación:
+
+- `LOCAL_DATABASE_NAME`
+- `ENABLE_SUPABASE_SYNC`
+- `ENABLE_SUPABASE_ANON_AUTH`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_REPORTS_TABLE`
+
+Ejemplo base en:
+
+`config/app_config.example.json`
+
+## Archivo local recomendado
+
+Crea un archivo local, por ejemplo:
+
+`config/app_config.local.json`
+
+Ese archivo ya está ignorado por git.
+
+Ejemplo:
+
+```json
+{
+  "LOCAL_DATABASE_NAME": "app_control_informes.db",
+  "ENABLE_SUPABASE_SYNC": "true",
+  "ENABLE_SUPABASE_ANON_AUTH": "true",
+  "SUPABASE_URL": "https://tu-proyecto.supabase.co",
+  "SUPABASE_ANON_KEY": "tu-anon-key",
+  "SUPABASE_REPORTS_TABLE": "maintenance_reports"
+}
 ```
 
-## 3. Descargar dependencias
+## Importante sobre la key de Supabase
 
-```bash
-flutter pub get
-```
+- `SUPABASE_ANON_KEY`: sí puede ir dentro de la app
+- `SUPABASE_SERVICE_ROLE_KEY`: no debe ir nunca dentro de la app móvil
 
-## 4. Crear tabla en Supabase
+La `anon key` no se trata como secreto fuerte. La seguridad real debe estar en las políticas RLS de Supabase.
+
+## Requisito recomendado para este proyecto
+
+Activa autenticación anónima en Supabase Auth.
+
+La app ya quedó preparada para exigir un usuario autenticado antes de sincronizar. Así cada informe remoto queda asociado a `auth.uid()` y no se crean filas huérfanas.
+
+## Crear la tabla en Supabase
 
 Ejecuta el SQL de:
 
 `supabase/001_initial_schema.sql`
 
-Si quieres mantener la app sin login visible para el usuario, habilita autenticacion anonima en Supabase Auth.
+Ese esquema ya deja la tabla preparada con RLS para que cada usuario solo vea y actualice sus propios informes.
 
-## 5. Variables para correr la app
+## Correr la app con variables
 
-Ejemplo:
+Opción recomendada:
+
+```bash
+flutter run --dart-define-from-file=config/app_config.local.json
+```
+
+Opción manual:
 
 ```bash
 flutter run ^
+  --dart-define=LOCAL_DATABASE_NAME=app_control_informes.db ^
   --dart-define=ENABLE_SUPABASE_SYNC=true ^
   --dart-define=ENABLE_SUPABASE_ANON_AUTH=true ^
   --dart-define=SUPABASE_URL=TU_SUPABASE_URL ^
@@ -41,21 +86,26 @@ flutter run ^
   --dart-define=SUPABASE_REPORTS_TABLE=maintenance_reports
 ```
 
-## 6. Que ya esta implementado
+Para release:
 
-- Modelo completo de informe
-- Persistencia local con SQLite
-- Repositorio local offline-first
-- Validacion del formulario
-- Copia local de fotos
-- Generacion local de PDF
-- Sincronizacion JSON con Supabase
-- Pantalla minima para probar backend
+```bash
+flutter build apk --release --dart-define-from-file=config/app_config.local.json
+```
 
-## 7. Siguiente paso recomendado
+## Qué ya está implementado
 
-Conectar una plantilla visual nueva al servicio principal:
+- persistencia local con SQLite
+- nombre del archivo SQLite configurable por variable
+- sincronización JSON con Supabase
+- autenticación anónima opcional
+- validación del formulario
+- copia local de fotos
+- generación local de PDF
+- captura de firmas
+- guardado del PDF en Descargas
 
-`lib/src/application/report_workflow_service.dart`
+## Qué falta antes de producción
 
-Ese archivo ya concentra el flujo que luego consumira el frontend.
+- probar sincronización real con tu proyecto de Supabase
+- decidir si después se subirán fotos o solo JSON
+- definir respaldo/recuperación de informes por usuario

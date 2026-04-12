@@ -1,4 +1,4 @@
-.dart_tool/
+﻿.dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
@@ -15,3 +15,5 @@ ios/Flutter/.last_build_id
 *.lock
 config/*.local.json
 
+.idea/
+*.iml

@@ -1,4 +1,4 @@
-# App Movil de Informes de Mantenimiento
+﻿# App Movil de Informes de Mantenimiento
 
 App Android hecha en Flutter para registrar informes de mantenimiento de grupos electrogenos, trabajar sin internet y generar PDF locales a partir del formulario.
 
@@ -145,7 +145,7 @@ Archivo principal:
 
 ### PDF
 
-- usa la plantilla base `Formulario_base.pdf`
+- usa la plantilla base `assets/templates/Formulario_base.pdf`
 - agrega marca de agua `BORRADOR`
 - incluye datos del informe
 - incluye multiples fotos antes y despues
@@ -195,3 +195,4 @@ Eso no es un problema del codigo funcional de la app, sino del entorno local de 
   - retomar informe
   - generar PDF
   - confirmar guardado en Descargas
+

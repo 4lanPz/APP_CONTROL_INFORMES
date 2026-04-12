@@ -29,10 +29,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - Formulario_base.pdf
+    - assets/templates/Formulario_base.pdf
 
 
 flutter_launcher_icons:
   android: true
-  image_path: "TecnoReport.png"
+  image_path: "assets/branding/TecnoReport.png"
   min_sdk_android: 21
+

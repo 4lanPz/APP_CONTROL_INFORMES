@@ -7,16 +7,16 @@ class DeveloperInfoScreen extends StatelessWidget {
   static const _developers = <_DeveloperProfile>[
     _DeveloperProfile(
       name: '4lanPZ',
-      githubLabel: 'github.com/4lanPZ',
+      githubLabel: 'github.com/4lanPz',
       githubUrl: 'https://github.com/4lanPZ',
-      emailLabel: 'alanstvn420@gmail.com',
-      emailAddress: '',
+      emailLabel: '4lanPZ',
+      emailAddress: 'alanstvn420@gmail.com',
     ),
     _DeveloperProfile(
       name: 'Ingrith-R2',
       githubLabel: 'github.com/Ingrith-R2',
       githubUrl: 'https://github.com/Ingrith-R2',
-      emailLabel: '',
+      emailLabel: 'Ingrith',
       emailAddress: '',
     ),
   ];
@@ -40,7 +40,7 @@ class DeveloperInfoScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Contactanos para actualizacion de proyectos, nuevos proyectos o sugerencias...',
+                  'Contáctanos para actualización de proyectos, nuevos proyectos o sugerencias...',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),

@@ -11,7 +11,7 @@ import 'report_file_service.dart';
 class ReportPdfService {
   const ReportPdfService(this._fileService);
 
-  static const _templateAssetPath = 'Formulario_base.pdf';
+  static const _templateAssetPath = 'assets/templates/Formulario_base.pdf';
   static const _showDraftWatermark = true;
   static const _draftWatermarkLabel = 'BORRADOR';
 
@@ -221,7 +221,7 @@ class ReportPdfService {
                 style: const pw.TextStyle(fontSize: 8.5),
               ),
               pw.Text(
-                'Plantilla base: Formulario_base.pdf',
+                'Plantilla base: assets/templates/Formulario_base.pdf',
                 style: const pw.TextStyle(fontSize: 8.5),
               ),
             ],

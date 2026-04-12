@@ -1,25 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class DeveloperInfoScreen extends StatelessWidget {
-  const DeveloperInfoScreen({super.key});
+import '../../services/app_diagnostics_service.dart';
+import 'internal/debug_tools_screen.dart';
 
+class DeveloperInfoScreen extends StatefulWidget {
+  const DeveloperInfoScreen({
+    super.key,
+    required this.diagnosticsService,
+  });
+
+  final AppDiagnosticsService diagnosticsService;
+
+  @override
+  State<DeveloperInfoScreen> createState() => _DeveloperInfoScreenState();
+}
+
+class _DeveloperInfoScreenState extends State<DeveloperInfoScreen> {
   static const _developers = <_DeveloperProfile>[
     _DeveloperProfile(
       name: '4lanPZ',
-      githubLabel: 'github.com/4lanPz',
+      githubLabel: 'github.com/4lanPZ',
       githubUrl: 'https://github.com/4lanPZ',
-      emailLabel: '4lanPZ',
+      emailLabel: 'alanstvn420@gmail.com',
       emailAddress: 'alanstvn420@gmail.com',
     ),
     _DeveloperProfile(
       name: 'Ingrith-R2',
       githubLabel: 'github.com/Ingrith-R2',
       githubUrl: 'https://github.com/Ingrith-R2',
-      emailLabel: 'Ingrith',
+      emailLabel: 'Configurar correo',
       emailAddress: '',
     ),
   ];
+
+  static const _brandAssetPath = 'assets/branding/TecnoReport.png';
+  static const _requiredSecretTaps = 10;
+
+  int _secretTapCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +58,7 @@ class DeveloperInfoScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Contáctanos para actualización de proyectos, nuevos proyectos o sugerencias...',
+                  'Contáctanos para actualización de proyectos, nuevos proyectos o sugerencias.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
@@ -48,9 +66,48 @@ class DeveloperInfoScreen extends StatelessWidget {
                   _DeveloperCard(developer: developer),
                   if (developer != _developers.last) const SizedBox(height: 16),
                 ],
+                const SizedBox(height: 20),
+                _buildSecretEntry(context),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecretEntry(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => _handleSecretTap(context),
+          child: Image.asset(
+            _brandAssetPath,
+            width: 92,
+            height: 92,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          AppDiagnosticsService.appVersionLabel,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleSecretTap(BuildContext context) async {
+    _secretTapCount++;
+    if (_secretTapCount < _requiredSecretTaps) {
+      return;
+    }
+
+    _secretTapCount = 0;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DebugToolsScreen(
+          diagnosticsService: widget.diagnosticsService,
         ),
       ),
     );
@@ -103,7 +160,9 @@ class _DeveloperCard extends StatelessWidget {
   }
 
   Future<void> _openGithub(
-      BuildContext context, _DeveloperProfile developer) async {
+    BuildContext context,
+    _DeveloperProfile developer,
+  ) async {
     final uri = Uri.tryParse(developer.githubUrl);
     if (uri == null) {
       _showPendingMessage(context, 'GitHub');
@@ -120,7 +179,9 @@ class _DeveloperCard extends StatelessWidget {
   }
 
   Future<void> _openEmail(
-      BuildContext context, _DeveloperProfile developer) async {
+    BuildContext context,
+    _DeveloperProfile developer,
+  ) async {
     final address = developer.emailAddress.trim();
     if (address.isEmpty) {
       _showPendingMessage(context, 'correo');
@@ -144,7 +205,8 @@ class _DeveloperCard extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-            'Aún falta configurar el enlace de $channel para ${developer.name}.'),
+          'Aún falta configurar el enlace de $channel para ${developer.name}.',
+        ),
       ),
     );
   }

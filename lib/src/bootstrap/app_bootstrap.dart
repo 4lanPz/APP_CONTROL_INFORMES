@@ -6,8 +6,9 @@ import '../config/app_config.dart';
 import '../data/local/app_database.dart';
 import '../data/local/local_maintenance_report_repository.dart';
 import '../data/remote/supabase_sync_service.dart';
-import '../services/report_file_service.dart';
+import '../services/app_diagnostics_service.dart';
 import '../services/editing_session_service.dart';
+import '../services/report_file_service.dart';
 import '../services/report_pdf_service.dart';
 import '../services/report_validator.dart';
 
@@ -22,6 +23,7 @@ class AppBootstrap {
     required this.syncService,
     required this.validator,
     required this.reportService,
+    required this.diagnosticsService,
   });
 
   final AppConfig config;
@@ -33,6 +35,7 @@ class AppBootstrap {
   final SupabaseSyncService syncService;
   final ReportValidator validator;
   final ReportWorkflowService reportService;
+  final AppDiagnosticsService diagnosticsService;
 
   static Future<AppBootstrap> create() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +66,12 @@ class AppBootstrap {
       syncService: syncService,
       validator: validator,
     );
+    final diagnosticsService = AppDiagnosticsService(
+      config: config,
+      repository: reportRepository,
+      fileService: fileService,
+      editingSessionService: editingSessionService,
+    );
 
     return AppBootstrap(
       config: config,
@@ -74,6 +83,7 @@ class AppBootstrap {
       syncService: syncService,
       validator: validator,
       reportService: reportService,
+      diagnosticsService: diagnosticsService,
     );
   }
 }

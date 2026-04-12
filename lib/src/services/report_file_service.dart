@@ -65,16 +65,40 @@ class ReportFileService {
   }) async {
     final generatedAt = DateTime.now();
     final fileName = _buildPdfFileName(report, generatedAt);
-    final pdfBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    return saveBytesToDownloads(
+      fileName: fileName,
+      subdirectory: 'Informes Generados',
+      mimeType: 'application/pdf',
+      bytes: bytes,
+      fallbackDirectoryFragments: const ['Informes Generados'],
+      storageUnavailableMessage:
+          'La integración con Descargas no está disponible en este dispositivo.',
+      saveFailedMessage: 'No se pudo guardar el PDF en la carpeta Descargas.',
+      missingPathMessage: 'No se pudo confirmar la ruta del PDF en Descargas.',
+    );
+  }
+
+  Future<File> saveBytesToDownloads({
+    required String fileName,
+    required String subdirectory,
+    required String mimeType,
+    required List<int> bytes,
+    required List<String> fallbackDirectoryFragments,
+    required String storageUnavailableMessage,
+    required String saveFailedMessage,
+    required String missingPathMessage,
+  }) async {
+    final fileBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
 
     if (Platform.isAndroid) {
       try {
         final savedPath = await _storageChannel.invokeMethod<String>(
-          'savePdfToDownloads',
+          'saveBytesToDownloads',
           {
             'fileName': fileName,
-            'subdirectory': 'Informes Generados',
-            'bytes': pdfBytes,
+            'subdirectory': subdirectory,
+            'mimeType': mimeType,
+            'bytes': fileBytes,
           },
         );
 
@@ -82,24 +106,30 @@ class ReportFileService {
           return File(savedPath);
         }
 
-        throw const FileSystemException(
-          'No se pudo confirmar la ruta del PDF en Descargas.',
-        );
+        throw FileSystemException(missingPathMessage);
       } on MissingPluginException {
-        throw const FileSystemException(
-          'La integración con Descargas no está disponible en este dispositivo.',
-        );
+        throw FileSystemException(storageUnavailableMessage);
       } on PlatformException {
-        throw const FileSystemException(
-          'No se pudo guardar el PDF en la carpeta Descargas.',
-        );
+        throw FileSystemException(saveFailedMessage);
       }
     }
 
-    final outputPath = await _buildFallbackPdfOutputPath(fileName);
-    final file = File(outputPath);
-    await file.writeAsBytes(pdfBytes, flush: true);
+    final outputDirectory = await _ensureDirectory(fallbackDirectoryFragments);
+    final file = File(p.join(outputDirectory.path, fileName));
+    await file.writeAsBytes(fileBytes, flush: true);
     return file;
+  }
+
+  Future<Directory> getDocumentsDirectory() async {
+    return getApplicationDocumentsDirectory();
+  }
+
+  Future<Directory> getPhotosDirectory() async {
+    return _ensureDirectory(['reports', 'photos']);
+  }
+
+  Future<Directory> getSignaturesDirectory() async {
+    return _ensureDirectory(['reports', 'signatures']);
   }
 
   String _buildPdfFileName(
@@ -115,11 +145,6 @@ class ReportFileService {
     return 'Informe_${technicianName}_$timestamp.pdf';
   }
 
-  Future<String> _buildFallbackPdfOutputPath(String fileName) async {
-    final pdfDirectory = await _ensureFallbackPdfDirectory();
-    return p.join(pdfDirectory.path, fileName);
-  }
-
   Future<Directory> _ensureDirectory(List<String> fragments) async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final directoryPath = p.joinAll([documentsDirectory.path, ...fragments]);
@@ -128,24 +153,6 @@ class ReportFileService {
       await directory.create(recursive: true);
     }
     return directory;
-  }
-
-  Future<Directory> _ensureFallbackPdfDirectory() async {
-    final documentsDirectories = await getExternalStorageDirectories(
-      type: StorageDirectory.documents,
-    );
-
-    if (documentsDirectories != null && documentsDirectories.isNotEmpty) {
-      final directory = Directory(
-        p.join(documentsDirectories.first.path, 'Informes Generados'),
-      );
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-      return directory;
-    }
-
-    return _ensureDirectory(['Informes Generados']);
   }
 
   String _sanitizeFileSegment(String value) {

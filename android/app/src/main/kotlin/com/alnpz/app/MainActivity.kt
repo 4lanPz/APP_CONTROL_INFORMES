@@ -34,9 +34,41 @@ class MainActivity : FlutterActivity() {
                     }
 
                     try {
-                        val savedPath = savePdfToDownloads(
+                        val savedPath = saveBytesToDownloads(
                             fileName = fileName,
                             subdirectory = subdirectory,
+                            mimeType = PDF_MIME_TYPE,
+                            bytes = bytes,
+                        )
+                        result.success(savedPath)
+                    } catch (error: Exception) {
+                        result.error(
+                            "save_failed",
+                            error.message,
+                            null,
+                        )
+                    }
+                }
+                "saveBytesToDownloads" -> {
+                    val fileName = call.argument<String>("fileName")
+                    val subdirectory = call.argument<String>("subdirectory").orEmpty()
+                    val mimeType = call.argument<String>("mimeType").orEmpty()
+                    val bytes = call.argument<ByteArray>("bytes")
+
+                    if (fileName.isNullOrBlank() || mimeType.isBlank() || bytes == null || bytes.isEmpty()) {
+                        result.error(
+                            "invalid_args",
+                            "fileName, mimeType and bytes are required.",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        val savedPath = saveBytesToDownloads(
+                            fileName = fileName,
+                            subdirectory = subdirectory,
+                            mimeType = mimeType,
                             bytes = bytes,
                         )
                         result.success(savedPath)
@@ -53,43 +85,45 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun savePdfToDownloads(
+    private fun saveBytesToDownloads(
         fileName: String,
         subdirectory: String,
+        mimeType: String,
         bytes: ByteArray,
     ): String {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             throw IOException(
-                "Guardar PDFs en Descargas requiere Android 10 o superior.",
+                "Guardar archivos en Descargas requiere Android 10 o superior.",
             )
         }
 
-        return savePdfWithMediaStore(fileName, subdirectory, bytes)
+        return saveWithMediaStore(fileName, subdirectory, mimeType, bytes)
     }
 
-    private fun savePdfWithMediaStore(
+    private fun saveWithMediaStore(
         fileName: String,
         subdirectory: String,
+        mimeType: String,
         bytes: ByteArray,
     ): String {
         val resolver = applicationContext.contentResolver
         val relativePath = buildRelativeDownloadsPath(subdirectory)
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, PDF_MIME_TYPE)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
             put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
 
         val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
         val itemUri = resolver.insert(collection, values)
-            ?: throw IOException("No se pudo crear el archivo PDF en Descargas.")
+            ?: throw IOException("No se pudo crear el archivo en Descargas.")
 
         try {
             resolver.openOutputStream(itemUri)?.use { output ->
                 output.write(bytes)
                 output.flush()
-            } ?: throw IOException("No se pudo abrir el archivo PDF para escritura.")
+            } ?: throw IOException("No se pudo abrir el archivo para escritura.")
 
             values.clear()
             values.put(MediaStore.MediaColumns.IS_PENDING, 0)
@@ -130,5 +164,3 @@ class MainActivity : FlutterActivity() {
         const val PDF_MIME_TYPE = "application/pdf"
     }
 }
-
-

@@ -1,198 +1,195 @@
-﻿# App Movil de Informes de Mantenimiento
+﻿# TecnoReport DEBUG
 
-App Android hecha en Flutter para registrar informes de mantenimiento de grupos electrogenos, trabajar sin internet y generar PDF locales a partir del formulario.
+Aplicación Android desarrollada en Flutter para registrar informes de mantenimiento de grupos electrógenos, trabajar sin conexión, generar PDF locales y sincronizar el JSON del informe con Supabase cuando la configuración remota está habilitada.
 
-## Estado actual
+## Estado del proyecto
 
-El proyecto ya tiene una base funcional usable para pruebas reales en Android.
+El proyecto está en etapa de validación previa a entrega. Por eso se mantienen visibles las marcas `DEBUG` en la app y en parte del flujo documental.
 
-### Cumplido hasta este punto
+Funcionalidades ya implementadas:
 
-- formulario completo de informe de mantenimiento
-- guardado local de informes en SQLite
-- edicion de informes existentes
-- listado de informes guardados con estado de sincronizacion
-- seleccion de multiples fotos desde la galeria por bloque:
-  - antes del servicio
-  - estado final
-- copiado local de fotos para mantenerlas bajo control de la app
-- captura de firma del tecnico
-- captura de firma del cliente
-- generacion local de PDF
-- guardado del PDF en `Descargas/Informes Generados` en Android
-- inclusion de firmas dentro del PDF
-- inclusion de multiples fotos dentro del PDF
-- preparacion para sincronizacion futura con Supabase
-- estados de sincronizacion:
-  - `pending_sync`
-  - `synced`
-  - `sync_error`
-- marca visual de `BORRADOR` en la app
-- marca de agua `BORRADOR` en el PDF
-- auto guardado del formulario mientras se edita
-- reanudacion del ultimo informe en edicion si Android reinicia la app al volver del segundo plano
+- creación y edición de informes de mantenimiento
+- guardado local en SQLite
+- auto guardado mientras se edita el formulario
+- reanudación del último informe en edición si Android reinicia la app
+- múltiples fotos por bloque (`antes` y `estado final`)
+- captura de firma de técnico y cliente
+- generación de PDF local
+- guardado del PDF en `Descargas/Informes Generados`
+- sincronización del JSON del informe con Supabase
+- modo visual `DEBUG` en la app
 
-### Pendiente
-
-- build APK estable desde esta maquina sin problemas de entorno
-- flujo final de version pagada para quitar el modo borrador
-- mejora de restauracion total del estado visual si se quiere comportamiento mas cercano a apps como WhatsApp
-- compartir PDF desde la app
-- captura de foto con camara dentro de la app
-- autenticacion de usuarios
-- panel web o backoffice
-
-## Cambios recientes
-
-### PDF
-
-- el PDF ahora se guarda en la carpeta publica `Downloads/Informes Generados`
-- se agrego marca de agua `BORRADOR`
-- el texto de marca de agua se puede quitar facil despues
-- el PDF ya incluye firmas de tecnico y cliente
-- el PDF ya puede mostrar varias fotos por bloque
-
-Archivo principal:
-- `lib/src/services/report_pdf_service.dart`
-
-### Formulario
-
-- el formulario ahora se auto guarda en segundo plano
-- si Android mata la app, al volver se intenta reabrir el ultimo informe en edicion
-- ya no se muestra debajo de cada foto la ruta local del archivo
-- el formulario permite cargar varias fotos antes y varias fotos finales
-- las fotos cargadas se pueden reordenar y quitar
-- el formulario ya pide firma de tecnico y firma de cliente
-
-Archivos principales:
-- `lib/src/presentation/screens/report_form_screen.dart`
-- `lib/src/services/editing_session_service.dart`
-- `lib/src/presentation/screens/reports_home_screen.dart`
-
-### App en modo borrador
-
-- se agrego una marca `BORRADOR` en los titulos principales de la app
-- el nombre general de la app tambien refleja que esta en modo borrador
-
-Archivo principal:
-- `lib/src/presentation/widgets/draft_app_bar_title.dart`
-
-## Flujo actual
-
-1. El usuario abre la app.
-2. Crea un informe nuevo o edita uno existente.
-3. Llena el formulario.
-4. Adjunta una o varias fotos en las secciones de antes del servicio y estado final.
-5. Captura la firma del tecnico y la firma del cliente.
-6. El formulario se va guardando localmente mientras se edita.
-7. Si la app pasa a segundo plano y Android la reinicia, al volver intenta abrir otra vez el informe que estaba en edicion.
-8. Al guardar, el informe queda persistido localmente con estado `pending_sync`.
-9. Cuando el usuario lo necesite, puede generar el PDF.
-10. El PDF se guarda en `Descargas/Informes Generados`.
-
-## Reglas funcionales ya aplicadas
-
-- todos los campos del formulario son obligatorios por ahora
-- las firmas del tecnico y del cliente son obligatorias
-- debe existir al menos una foto antes y una foto despues
-- las fotos se seleccionan desde la galeria
-- las fotos no se suben a Supabase en esta version
-- el PDF no se guarda en ninguna base de datos online
-- todo informe editado vuelve a `pending_sync`
-- cada informe se identifica por UUID
-
-## Stack actual
+## Stack técnico
 
 - Flutter
+- Dart
 - SQLite con `sqflite`
-- `path_provider`
+- Supabase con `supabase_flutter`
 - `image_picker`
 - `pdf`
 - `printing`
-- `supabase_flutter`
+- `url_launcher`
 
-## Estructura principal
+## Requisitos
 
-- `lib/src/presentation`
-  - pantallas y widgets
-- `lib/src/application`
-  - flujo de trabajo del informe
-- `lib/src/data/local`
-  - base de datos SQLite y repositorio local
-- `lib/src/services`
-  - PDF, archivos, validacion y sesion de edicion
-- `android/`
-  - integracion nativa Android para guardar PDF en Descargas
+- Flutter instalado y disponible en `PATH`
+- Android Studio o Android SDK configurado
+- Java 17, preferiblemente el `jbr` de Android Studio
+- dispositivo Android o emulador para pruebas
 
-## Estado actual por area
+## Clonar el proyecto
 
-### Pantalla principal
+```bash
+git clone <TU_URL_DEL_REPOSITORIO>
+cd APP_CONTROL_INFORMES
+```
 
-- lista informes pendientes, enviados y con error
-- permite crear informe nuevo
-- permite editar informes existentes
-- permite generar PDF
-- intenta reabrir el ultimo informe en edicion si la app fue reiniciada por Android
+## Configuración local
 
-### Formulario
+Este proyecto usa variables de compilación para la configuración local y remota.
 
-- datos generales, equipo, checklist, pruebas, actividades, observaciones y validacion
-- auto guardado local durante la edicion
-- multiples fotos por seccion
-- eliminacion y reordenamiento de fotos
-- captura de firma para tecnico y cliente
-- validacion de campos obligatorios antes de guardar
+1. Crea un archivo local a partir del ejemplo:
 
-### PDF
+```bash
+copy config\app_config.example.json config\app_config.local.json
+```
 
-- usa la plantilla base `assets/templates/Formulario_base.pdf`
-- agrega marca de agua `BORRADOR`
-- incluye datos del informe
-- incluye multiples fotos antes y despues
-- incluye firmas de tecnico y cliente
-- se guarda en `Descargas/Informes Generados` en Android
+2. Completa tus valores reales en `config/app_config.local.json`.
 
-### Datos y sincronizacion
+Variables principales:
 
-- almacenamiento local en SQLite
-- modelo preparado para sincronizar JSON con Supabase
-- estados de sync visibles en la app
-- no se suben fotos ni PDF al backend en esta etapa
+- `LOCAL_DATABASE_NAME`
+- `ENABLE_SUPABASE_SYNC`
+- `ENABLE_SUPABASE_ANON_AUTH`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_REPORTS_TABLE`
 
-## Modo borrador
+Documentación ampliada:
 
-Actualmente el proyecto esta en modo borrador/demostracion.
+- [BACKEND_SETUP.md](BACKEND_SETUP.md)
 
-### Donde se desactiva despues
+## Importante sobre credenciales y GitHub
 
-- marca de agua PDF:
-  - `lib/src/services/report_pdf_service.dart`
-  - cambiar `_showDraftWatermark` a `false`
-- marca visual en la app:
-  - `lib/src/presentation/widgets/draft_app_bar_title.dart`
-  - cambiar `showDraftBadge` a `false`
+No debes subir al repositorio:
 
-## Nota sobre pruebas y compilacion
+- `config/app_config.local.json`
+- claves privadas de firma Android
+- archivos de entorno personales
+- caches de build o archivos del IDE
 
-En esta maquina hubo problemas de entorno para compilar APK por una mezcla de:
+El proyecto ya ignora por `.gitignore`:
 
-- proyecto en `E:`
-- caches de Gradle y Pub en `C:`
-- Java por defecto en version 8
-- locks viejos de Gradle
+- `config/*.local.json`
+- `.idea/`
+- `*.iml`
+- `.dart_tool/`
+- `build/`
 
-Eso no es un problema del codigo funcional de la app, sino del entorno local de compilacion.
+Notas de seguridad:
 
-## Objetivo de la siguiente etapa
+- `SUPABASE_ANON_KEY` puede vivir dentro de la app, pero no debe tratarse como secreto fuerte
+- la seguridad real está en las políticas RLS de Supabase
+- nunca pongas `SUPABASE_SERVICE_ROLE_KEY` dentro de la app móvil
 
-- estabilizar el entorno de build
-- generar APK de prueba
-- validar en telefono el flujo completo:
-  - llenar formulario
-  - cargar varias fotos
-  - firmar tecnico y cliente
-  - minimizar app
-  - retomar informe
-  - generar PDF
-  - confirmar guardado en Descargas
+## Ejecutar en desarrollo
+
+```bash
+flutter pub get
+flutter run --dart-define-from-file=config/app_config.local.json
+```
+
+## Generar APK release
+
+```bash
+flutter build apk --release --dart-define-from-file=config/app_config.local.json
+```
+
+APK generada en:
+
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+## Estructura del proyecto
+
+```text
+assets/
+  branding/
+  templates/
+android/
+config/
+lib/
+  src/
+    application/
+    bootstrap/
+    config/
+    data/
+      local/
+      remote/
+    domain/
+      models/
+      repositories/
+    presentation/
+      screens/
+      widgets/
+    services/
+supabase/
+```
+
+## Assets importantes
+
+- logo de la app: `assets/branding/TecnoReport.png`
+- plantilla PDF base: `assets/templates/Formulario_base.pdf`
+
+## Flujo actual
+
+1. Crear o editar un informe.
+2. Completar datos generales, checklist, pruebas y observaciones.
+3. Adjuntar fotos del antes y del estado final.
+4. Capturar firma del técnico y del cliente.
+5. Guardar el informe localmente.
+6. Generar PDF o sincronizar el JSON si Supabase está habilitado.
+
+## Supabase
+
+La app sincroniza una fila en la tabla `maintenance_reports` y guarda el informe completo en `report_json`.
+
+Archivo de referencia para crear la tabla y RLS:
+
+- [001_initial_schema.sql](supabase/001_initial_schema.sql)
+
+## Estado release actual
+
+Se mantiene intencionalmente:
+
+- nombre visible `TecnoReport DEBUG`
+- badge visual `DEBUG`
+- firma debug para la APK release de pruebas
+
+Eso permite seguir probando antes del cierre comercial. Cuando llegue el momento de entrega final, conviene cambiar la firma Android por una release key propia.
+
+## Buenas prácticas al actualizar
+
+Antes de subir cambios al repositorio:
+
+```bash
+flutter analyze
+```
+
+Y revisa siempre:
+
+```bash
+git status
+```
+
+para confirmar que no se estén yendo archivos locales, credenciales o builds temporales.
+
+## Pendientes naturales para siguientes etapas
+
+- flujo de backup/exportación local de informes
+- estrategia de restauración/importación
+- posible subida futura de fotos a almacenamiento remoto
+- firma release definitiva
+- retiro del modo `DEBUG` cuando corresponda
 

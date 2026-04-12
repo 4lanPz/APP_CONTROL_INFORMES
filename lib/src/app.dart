@@ -27,6 +27,7 @@ class MaintenanceReportsApp extends StatelessWidget {
         reportService: bootstrap.reportService,
         config: bootstrap.config,
         editingSessionService: bootstrap.editingSessionService,
+        diagnosticsService: bootstrap.diagnosticsService,
       ),
     );
   }

@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
+import '../../services/app_diagnostics_service.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
 import '../../services/app_error_formatter.dart';
@@ -16,11 +17,13 @@ class ReportsHomeScreen extends StatefulWidget {
     required this.reportService,
     required this.config,
     required this.editingSessionService,
+    required this.diagnosticsService,
   });
 
   final ReportWorkflowService reportService;
   final AppConfig config;
   final EditingSessionService editingSessionService;
+  final AppDiagnosticsService diagnosticsService;
 
   @override
   State<ReportsHomeScreen> createState() => _ReportsHomeScreenState();
@@ -576,7 +579,8 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   Future<void> _openDeveloperInfo() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const DeveloperInfoScreen(),
+        builder: (context) =>
+            DeveloperInfoScreen(diagnosticsService: widget.diagnosticsService),
       ),
     );
   }

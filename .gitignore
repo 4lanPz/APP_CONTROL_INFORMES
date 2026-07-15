@@ -15,5 +15,8 @@ ios/Flutter/.last_build_id
 *.lock
 config/*.local.json
 
+# Config local del MCP (contiene el access token de Supabase)
+.mcp.json
+
 .idea/
 *.iml

@@ -6,7 +6,7 @@ class DraftAppBarTitle extends StatelessWidget {
     super.key,
   });
 
-  static const bool showDraftBadge = true;
+  static const bool showDraftBadge = false;
 
   final String title;
 

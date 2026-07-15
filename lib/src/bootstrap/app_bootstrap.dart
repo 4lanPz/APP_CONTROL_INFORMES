@@ -8,6 +8,7 @@ import '../data/local/local_maintenance_report_repository.dart';
 import '../data/remote/supabase_sync_service.dart';
 import '../services/app_diagnostics_service.dart';
 import '../services/editing_session_service.dart';
+import '../services/license_service.dart';
 import '../services/report_file_service.dart';
 import '../services/report_pdf_service.dart';
 import '../services/report_validator.dart';
@@ -24,6 +25,8 @@ class AppBootstrap {
     required this.validator,
     required this.reportService,
     required this.diagnosticsService,
+    required this.licenseService,
+    required this.licenseGate,
   });
 
   final AppConfig config;
@@ -36,6 +39,8 @@ class AppBootstrap {
   final ReportValidator validator;
   final ReportWorkflowService reportService;
   final AppDiagnosticsService diagnosticsService;
+  final LicenseService licenseService;
+  final LicenseGate licenseGate;
 
   static Future<AppBootstrap> create() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +78,9 @@ class AppBootstrap {
       editingSessionService: editingSessionService,
     );
 
+    final licenseService = LicenseService(config: config);
+    final licenseGate = await licenseService.evaluate();
+
     return AppBootstrap(
       config: config,
       database: database,
@@ -84,6 +92,8 @@ class AppBootstrap {
       validator: validator,
       reportService: reportService,
       diagnosticsService: diagnosticsService,
+      licenseService: licenseService,
+      licenseGate: licenseGate,
     );
   }
 }

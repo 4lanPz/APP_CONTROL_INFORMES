@@ -10,6 +10,7 @@ import '../../domain/models/maintenance_report.dart';
 import '../../services/app_error_formatter.dart';
 import '../../services/editing_session_service.dart';
 import '../../services/report_file_service.dart';
+import '../../utils/date_formats.dart';
 import '../widgets/draft_app_bar_title.dart';
 import 'signature_capture_screen.dart';
 
@@ -248,7 +249,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today_outlined),
                 title: const Text('Fecha del servicio'),
-                subtitle: Text(_formatDate(_serviceDate)),
+                subtitle: Text(formatDisplayDate(_serviceDate)),
                 trailing: TextButton(
                   onPressed: _pickServiceDate,
                   child: const Text('Cambiar'),
@@ -931,13 +932,12 @@ class _ReportFormScreenState extends State<ReportFormScreen>
     _autoSaveTimer?.cancel();
     final report = _buildReportFromFields();
     final errors = widget.reportService.validateReport(report);
-    final invalidFieldKeys = _collectInvalidFieldKeys(report);
 
     if (errors.isNotEmpty) {
       setState(() {
         _invalidFields
           ..clear()
-          ..addAll(invalidFieldKeys);
+          ..addAll(errors.map((error) => error.field));
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1212,7 +1212,11 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
     _isAutoSaving = true;
     try {
-      final savedReport = await widget.reportService.saveReport(report);
+      // Auto-guardado: se conserva como borrador (draft) para que NO se
+      // sincronice mientras el formulario podría estar incompleto. El guardado
+      // explícito (botón) es el que lo promueve a pendiente de envío.
+      final savedReport =
+          await widget.reportService.saveReport(report, asDraft: true);
       _workingReport = savedReport;
       _hasPendingChanges = false;
     } catch (_) {
@@ -1256,92 +1260,6 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           entry.state != InspectionState.notApplicable ||
           entry.observation.trim().isNotEmpty,
     );
-  }
-
-  Set<String> _collectInvalidFieldKeys(MaintenanceReport report) {
-    final invalidFields = <String>{};
-
-    if (report.location.trim().isEmpty) {
-      invalidFields.add('location');
-    }
-    if (report.hourMeter.trim().isEmpty) {
-      invalidFields.add('hour_meter');
-    }
-    if (report.equipment.engineBrand.trim().isEmpty) {
-      invalidFields.add('engine_brand');
-    }
-    if (report.equipment.engineModel.trim().isEmpty) {
-      invalidFields.add('engine_model');
-    }
-    if (report.equipment.alternatorBrand.trim().isEmpty) {
-      invalidFields.add('alternator_brand');
-    }
-    if (report.equipment.power.trim().isEmpty) {
-      invalidFields.add('power');
-    }
-    if (report.equipment.serialNumber.trim().isEmpty) {
-      invalidFields.add('serial_number');
-    }
-    if (report.equipment.manufactureYear.trim().isEmpty) {
-      invalidFields.add('manufacture_year');
-    }
-    if (report.tests.voltageL1.trim().isEmpty) {
-      invalidFields.add('voltage_l1');
-    }
-    if (report.tests.voltageL2.trim().isEmpty) {
-      invalidFields.add('voltage_l2');
-    }
-    if (report.tests.voltageL3.trim().isEmpty) {
-      invalidFields.add('voltage_l3');
-    }
-    if (report.tests.frequencyHz.trim().isEmpty) {
-      invalidFields.add('frequency_hz');
-    }
-    if (report.tests.oilPressurePsi.trim().isEmpty) {
-      invalidFields.add('oil_pressure_psi');
-    }
-    if (report.tests.temperatureC.trim().isEmpty) {
-      invalidFields.add('temperature_c');
-    }
-    if (report.activitiesAndParts.trim().isEmpty) {
-      invalidFields.add('activities');
-    }
-    if (report.observationsAndRecommendations.trim().isEmpty) {
-      invalidFields.add('observations');
-    }
-    if (report.technician.name.trim().isEmpty) {
-      invalidFields.add('technician_name');
-    }
-    if (report.technician.identification.trim().isEmpty) {
-      invalidFields.add('technician_identification');
-    }
-    if (report.technicianSignaturePath.trim().isEmpty) {
-      invalidFields.add('technician_signature');
-    }
-    if (report.clientSignaturePath.trim().isEmpty) {
-      invalidFields.add('client_signature');
-    }
-    if (report.clientContact.name.trim().isEmpty) {
-      invalidFields.add('client_name');
-    }
-    if (report.clientContact.role.trim().isEmpty) {
-      invalidFields.add('client_role');
-    }
-    if (report.photos.beforePaths.isEmpty) {
-      invalidFields.add(_photoFieldKey(ReportPhotoType.before));
-    }
-    if (report.photos.afterPaths.isEmpty) {
-      invalidFields.add(_photoFieldKey(ReportPhotoType.after));
-    }
-
-    for (var index = 0; index < report.checklist.length; index++) {
-      if (report.checklist[index].state != InspectionState.notApplicable &&
-          report.checklist[index].observation.trim().isEmpty) {
-        invalidFields.add('checklist_observation_$index');
-      }
-    }
-
-    return invalidFields;
   }
 
   bool _hasFieldError(String fieldKey) => _invalidFields.contains(fieldKey);
@@ -1409,11 +1327,5 @@ class _ReportFormScreenState extends State<ReportFormScreen>
       return normalized;
     }
     return normalized.substring(lastSeparator + 1);
-  }
-
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$day/$month/${value.year}';
   }
 }

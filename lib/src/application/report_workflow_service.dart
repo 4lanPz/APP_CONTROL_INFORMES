@@ -90,11 +90,21 @@ class ReportWorkflowService {
     return _repository.findByUuid(uuid);
   }
 
-  Future<MaintenanceReport> saveReport(MaintenanceReport report) async {
+  /// Guarda un informe.
+  ///
+  /// Cuando [asDraft] es `true` (auto-guardado en segundo plano) el informe
+  /// queda como [SyncStatus.draft]: se conserva localmente pero NO se
+  /// sincroniza, porque puede estar incompleto (por ejemplo si la app se cerró
+  /// a la mitad). Al guardar explícitamente desde el formulario se promueve a
+  /// [SyncStatus.pendingSync] para que entre en la cola de sincronización.
+  Future<MaintenanceReport> saveReport(
+    MaintenanceReport report, {
+    bool asDraft = false,
+  }) async {
     final now = DateTime.now();
     final normalized = report.copyWith(
       updatedAt: now,
-      syncStatus: SyncStatus.pendingSync,
+      syncStatus: asDraft ? SyncStatus.draft : SyncStatus.pendingSync,
       syncedAt: null,
     );
     return _repository.save(normalized);
@@ -168,7 +178,7 @@ class ReportWorkflowService {
     return _pdfService.generateReportPdf(report, logoPath: logoPath);
   }
 
-  List<String> validateReport(MaintenanceReport report) {
+  List<ReportValidationError> validateReport(MaintenanceReport report) {
     return _validator.validate(report);
   }
 

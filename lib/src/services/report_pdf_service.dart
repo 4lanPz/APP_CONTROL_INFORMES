@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../domain/models/maintenance_report.dart';
+import '../utils/date_formats.dart';
 import 'report_file_service.dart';
 
 class ReportPdfService {
@@ -74,7 +75,7 @@ class ReportPdfService {
                   _buildCompactSectionTitle('Datos generales'),
                   _buildCompactRow(
                     leftLabel: 'Fecha',
-                    leftValue: _formatDate(report.serviceDate),
+                    leftValue: formatDisplayDate(report.serviceDate),
                     rightLabel: 'Tipo',
                     rightValue: report.maintenanceType.label,
                   ),
@@ -514,12 +515,6 @@ class ReportPdfService {
     }
 
     return images;
-  }
-
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$day/$month/${value.year}';
   }
 
   pw.Widget _buildDraftWatermark() {

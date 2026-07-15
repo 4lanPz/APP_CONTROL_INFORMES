@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/app_config.dart';
 import '../../domain/models/maintenance_report.dart';
 import '../../services/app_error_formatter.dart';
+import '../../utils/date_formats.dart';
 
 class SyncBatchResult {
   const SyncBatchResult({
@@ -109,7 +110,7 @@ class SupabaseSyncService {
     return {
       'uuid': report.uuid,
       'owner_user_id': ownerUserId,
-      'service_date': _formatDateOnly(report.serviceDate),
+      'service_date': formatIsoDate(report.serviceDate),
       'maintenance_type': report.maintenanceType.apiValue,
       'location': report.location,
       'technician_name': report.technician.name,
@@ -124,11 +125,5 @@ class SupabaseSyncService {
       'updated_at': report.updatedAt.toUtc().toIso8601String(),
       'synced_at': syncedAt,
     };
-  }
-
-  String _formatDateOnly(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
   }
 }

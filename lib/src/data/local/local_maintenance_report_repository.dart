@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../domain/models/maintenance_report.dart';
 import '../../domain/repositories/maintenance_report_repository.dart';
+import '../../utils/date_formats.dart';
 import 'app_database.dart';
 
 class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
@@ -61,7 +62,7 @@ class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
 
     final row = {
       'uuid': report.uuid,
-      'service_date': _formatDateOnly(report.serviceDate),
+      'service_date': formatIsoDate(report.serviceDate),
       'maintenance_type': report.maintenanceType.apiValue,
       'location': report.location,
       'technician_name': report.technician.name,
@@ -95,11 +96,5 @@ class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
       payload,
       localId: row['local_id'] as int?,
     );
-  }
-
-  String _formatDateOnly(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
   }
 }

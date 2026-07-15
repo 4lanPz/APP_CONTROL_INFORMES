@@ -1,87 +1,171 @@
 import '../domain/models/maintenance_report.dart';
 
+/// Un error de validación asociado a un campo concreto del formulario.
+///
+/// [field] coincide con la clave (`fieldKey`) que usa `ReportFormScreen` para
+/// resaltar el campo en rojo, y [message] es el texto explicativo.
+class ReportValidationError {
+  const ReportValidationError(this.field, this.message);
+
+  final String field;
+  final String message;
+}
+
+/// Valida un informe de mantenimiento.
+///
+/// Fuente ÚNICA de las reglas de campos obligatorios: tanto el bloqueo del
+/// guardado como el resaltado de campos en rojo salen de aquí. Antes esta
+/// lógica estaba duplicada entre este validador y el formulario.
 class ReportValidator {
-  List<String> validate(MaintenanceReport report) {
-    final errors = <String>[];
+  List<ReportValidationError> validate(MaintenanceReport report) {
+    final errors = <ReportValidationError>[];
 
-    if (report.location.trim().isEmpty) {
-      errors.add('La ubicación es obligatoria.');
-    }
-    if (report.hourMeter.trim().isEmpty) {
-      errors.add('El horómetro actual es obligatorio.');
-    }
-    if (report.equipment.engineBrand.trim().isEmpty) {
-      errors.add('La marca del motor es obligatoria.');
-    }
-    if (report.equipment.engineModel.trim().isEmpty) {
-      errors.add('El modelo del motor es obligatorio.');
-    }
-    if (report.equipment.alternatorBrand.trim().isEmpty) {
-      errors.add('La marca del alternador es obligatoria.');
-    }
-    if (report.equipment.power.trim().isEmpty) {
-      errors.add('La potencia es obligatoria.');
-    }
-    if (report.equipment.serialNumber.trim().isEmpty) {
-      errors.add('La serie del equipo es obligatoria.');
-    }
-    if (report.equipment.manufactureYear.trim().isEmpty) {
-      errors.add('El año de fabricación es obligatorio.');
-    }
-    if (report.activitiesAndParts.trim().isEmpty) {
-      errors.add('Las actividades y repuestos son obligatorios.');
-    }
-    if (report.observationsAndRecommendations.trim().isEmpty) {
-      errors.add('Las observaciones y recomendaciones son obligatorias.');
-    }
-    if (report.technician.name.trim().isEmpty) {
-      errors.add('El nombre del técnico es obligatorio.');
-    }
-    if (report.technician.identification.trim().isEmpty) {
-      errors.add('La identificación del técnico es obligatoria.');
-    }
-    if (report.technicianSignaturePath.trim().isEmpty) {
-      errors.add('La firma del técnico es obligatoria.');
-    }
-    if (report.clientSignaturePath.trim().isEmpty) {
-      errors.add('La firma del cliente es obligatoria.');
-    }
-    if (report.clientContact.name.trim().isEmpty) {
-      errors.add('El nombre del responsable es obligatorio.');
-    }
-    if (report.clientContact.role.trim().isEmpty) {
-      errors.add('El cargo del responsable es obligatorio.');
-    }
-    if (!report.photos.isComplete) {
-      errors.add('Debes adjuntar al menos una foto antes y una foto después.');
-    }
-    if (report.checklist.isEmpty) {
-      errors.add('El checklist no puede estar vacío.');
-    }
-
-    for (final entry in report.checklist) {
-      if (entry.state != InspectionState.notApplicable &&
-          entry.observation.trim().isEmpty) {
-        errors.add(
-          'Cada ítem del checklist debe incluir observación: ${entry.system}.',
-        );
-        break;
+    void requireText(String field, String value, String message) {
+      if (value.trim().isEmpty) {
+        errors.add(ReportValidationError(field, message));
       }
     }
 
-    if (report.tests.voltageL1.trim().isEmpty ||
-        report.tests.voltageL2.trim().isEmpty ||
-        report.tests.voltageL3.trim().isEmpty) {
-      errors.add('Los voltajes L1, L2 y L3 son obligatorios.');
+    requireText('location', report.location, 'La ubicación es obligatoria.');
+    requireText(
+      'hour_meter',
+      report.hourMeter,
+      'El horómetro actual es obligatorio.',
+    );
+    requireText(
+      'engine_brand',
+      report.equipment.engineBrand,
+      'La marca del motor es obligatoria.',
+    );
+    requireText(
+      'engine_model',
+      report.equipment.engineModel,
+      'El modelo del motor es obligatorio.',
+    );
+    requireText(
+      'alternator_brand',
+      report.equipment.alternatorBrand,
+      'La marca del alternador es obligatoria.',
+    );
+    requireText('power', report.equipment.power, 'La potencia es obligatoria.');
+    requireText(
+      'serial_number',
+      report.equipment.serialNumber,
+      'La serie del equipo es obligatoria.',
+    );
+    requireText(
+      'manufacture_year',
+      report.equipment.manufactureYear,
+      'El año de fabricación es obligatorio.',
+    );
+    requireText(
+      'voltage_l1',
+      report.tests.voltageL1,
+      'El voltaje L1 es obligatorio.',
+    );
+    requireText(
+      'voltage_l2',
+      report.tests.voltageL2,
+      'El voltaje L2 es obligatorio.',
+    );
+    requireText(
+      'voltage_l3',
+      report.tests.voltageL3,
+      'El voltaje L3 es obligatorio.',
+    );
+    requireText(
+      'frequency_hz',
+      report.tests.frequencyHz,
+      'La frecuencia es obligatoria.',
+    );
+    requireText(
+      'oil_pressure_psi',
+      report.tests.oilPressurePsi,
+      'La presión de aceite es obligatoria.',
+    );
+    requireText(
+      'temperature_c',
+      report.tests.temperatureC,
+      'La temperatura es obligatoria.',
+    );
+    requireText(
+      'activities',
+      report.activitiesAndParts,
+      'Las actividades y repuestos son obligatorios.',
+    );
+    requireText(
+      'observations',
+      report.observationsAndRecommendations,
+      'Las observaciones y recomendaciones son obligatorias.',
+    );
+    requireText(
+      'technician_name',
+      report.technician.name,
+      'El nombre del técnico es obligatorio.',
+    );
+    requireText(
+      'technician_identification',
+      report.technician.identification,
+      'La identificación del técnico es obligatoria.',
+    );
+    requireText(
+      'technician_signature',
+      report.technicianSignaturePath,
+      'La firma del técnico es obligatoria.',
+    );
+    requireText(
+      'client_signature',
+      report.clientSignaturePath,
+      'La firma del cliente es obligatoria.',
+    );
+    requireText(
+      'client_name',
+      report.clientContact.name,
+      'El nombre del responsable es obligatorio.',
+    );
+    requireText(
+      'client_role',
+      report.clientContact.role,
+      'El cargo del responsable es obligatorio.',
+    );
+
+    if (report.photos.beforePaths.isEmpty) {
+      errors.add(
+        const ReportValidationError(
+          'before_photo',
+          'Debes adjuntar al menos una foto del antes.',
+        ),
+      );
     }
-    if (report.tests.frequencyHz.trim().isEmpty) {
-      errors.add('La frecuencia es obligatoria.');
+    if (report.photos.afterPaths.isEmpty) {
+      errors.add(
+        const ReportValidationError(
+          'after_photo',
+          'Debes adjuntar al menos una foto del estado final.',
+        ),
+      );
     }
-    if (report.tests.oilPressurePsi.trim().isEmpty) {
-      errors.add('La presión de aceite es obligatoria.');
+
+    if (report.checklist.isEmpty) {
+      errors.add(
+        const ReportValidationError(
+          'checklist',
+          'El checklist no puede estar vacío.',
+        ),
+      );
     }
-    if (report.tests.temperatureC.trim().isEmpty) {
-      errors.add('La temperatura es obligatoria.');
+
+    for (var index = 0; index < report.checklist.length; index++) {
+      final entry = report.checklist[index];
+      if (entry.state != InspectionState.notApplicable &&
+          entry.observation.trim().isEmpty) {
+        errors.add(
+          ReportValidationError(
+            'checklist_observation_$index',
+            'Cada ítem del checklist debe incluir observación: ${entry.system}.',
+          ),
+        );
+      }
     }
 
     return errors;

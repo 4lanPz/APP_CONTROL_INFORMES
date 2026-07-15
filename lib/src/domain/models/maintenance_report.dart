@@ -1,3 +1,5 @@
+import '../../utils/date_formats.dart';
+
 enum MaintenanceType {
   preventive('preventivo', 'Preventivo'),
   corrective('correctivo', 'Correctivo'),
@@ -461,7 +463,7 @@ class MaintenanceReport {
   Map<String, dynamic> toJson() {
     return {
       'uuid': uuid,
-      'fecha_servicio': _formatDateOnly(serviceDate),
+      'fecha_servicio': formatIsoDate(serviceDate),
       'tipo_mantenimiento': maintenanceType.apiValue,
       'ubicacion_sede': location,
       'horometro_actual': hourMeter,
@@ -541,11 +543,5 @@ class MaintenanceReport {
           ? null
           : DateTime.parse(json['fecha_sync'] as String),
     );
-  }
-
-  static String _formatDateOnly(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
   }
 }

@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../application/report_workflow_service.dart';
 import '../../config/app_config.dart';
 import '../../services/app_diagnostics_service.dart';
-import '../../data/remote/supabase_sync_service.dart';
 import '../../domain/models/maintenance_report.dart';
 import '../../services/app_error_formatter.dart';
 import '../../services/editing_session_service.dart';
+import '../../utils/date_formats.dart';
 import '../widgets/draft_app_bar_title.dart';
+import 'app_status_screen.dart';
 import 'developer_info_screen.dart';
 import 'report_form_screen.dart';
 
@@ -31,7 +32,6 @@ class ReportsHomeScreen extends StatefulWidget {
 
 class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   bool _isLoading = true;
-  bool _isSyncing = false;
   String? _pdfGeneratingUuid;
   String? _message;
   bool _didAttemptSessionRestore = false;
@@ -45,6 +45,9 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final recoveredReports = _reports
+        .where((report) => report.syncStatus == SyncStatus.draft)
+        .toList();
     final pendingReports = _reports
         .where((report) => report.syncStatus == SyncStatus.pendingSync)
         .toList();
@@ -60,15 +63,9 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         title: const DraftAppBarTitle('TecnoReport'),
         actions: [
           IconButton(
-            tooltip: 'Sincronizar pendientes',
-            onPressed: _isLoading || _isSyncing ? null : _syncPending,
-            icon: _isSyncing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
-                  )
-                : const Icon(Icons.sync),
+            tooltip: 'Estado de la app',
+            onPressed: _openAppStatus,
+            icon: const Icon(Icons.settings_outlined),
           ),
           IconButton(
             tooltip: 'Info',
@@ -87,16 +84,10 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            _buildSummaryCard(
-              pendingCount: pendingReports.length,
-              syncedCount: syncedReports.length,
-              errorCount: errorReports.length,
-            ),
             if (_message != null) ...[
-              const SizedBox(height: 12),
               _buildMessageCard(_message!),
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 16),
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
@@ -105,6 +96,16 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
             else if (_reports.isEmpty)
               _buildEmptyState()
             else ...[
+              if (recoveredReports.isNotEmpty) ...[
+                _buildGroupSection(
+                  title: 'Recuperados',
+                  emptyLabel: 'No hay informes recuperados.',
+                  reports: recoveredReports,
+                  color: const Color(0xFF7F8C8D),
+                  recovered: true,
+                ),
+                const SizedBox(height: 16),
+              ],
               _buildGroupSection(
                 title: 'Pendientes',
                 emptyLabel: 'No hay informes pendientes.',
@@ -132,167 +133,12 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     );
   }
 
-  Widget _buildSummaryCard({
-    required int pendingCount,
-    required int syncedCount,
-    required int errorCount,
-  }) {
-    final isLocalReady = true;
-    final isOnlineReady = widget.config.canUseSupabase;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Estado general',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMiniStat(
-                    title: 'Pendientes',
-                    value: '$pendingCount',
-                    color: const Color(0xFFF0B429),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMiniStat(
-                    title: 'Enviados',
-                    value: '$syncedCount',
-                    color: const Color(0xFF1F8F5F),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMiniStat(
-                    title: 'Con error',
-                    value: '$errorCount',
-                    color: const Color(0xFFC0392B),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildBaseStatus(
-                    title: 'Estado base local',
-                    isReady: isLocalReady,
-                    successLabel: 'Correcto',
-                    errorLabel: 'Fallando',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildBaseStatus(
-                    title: 'Estado base online',
-                    isReady: isOnlineReady,
-                    successLabel: 'Correcto',
-                    errorLabel: 'Pendiente',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildMessageCard(String message) {
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Text(message),
-      ),
-    );
-  }
-
-  Widget _buildMiniStat({
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBaseStatus({
-    required String title,
-    required bool isReady,
-    required String successLabel,
-    required String errorLabel,
-  }) {
-    final color = isReady ? const Color(0xFF1F8F5F) : const Color(0xFFC0392B);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                isReady ? Icons.check_circle : Icons.cancel,
-                size: 16,
-                color: color,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  isReady ? successLabel : errorLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -323,6 +169,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     required String emptyLabel,
     required List<MaintenanceReport> reports,
     required Color color,
+    bool recovered = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,9 +221,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                report.location.trim().isEmpty
-                                    ? 'Informe ${report.uuid.substring(0, 8)}'
-                                    : report.location,
+                                _reportTitle(report, recovered: recovered),
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               const SizedBox(height: 6),
@@ -384,7 +229,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
                                 'Técnico: ${report.technician.name.isEmpty ? '-' : report.technician.name}',
                               ),
                               Text(
-                                'Fecha: ${_formatDate(report.serviceDate)}',
+                                'Fecha: ${formatDisplayDate(report.serviceDate)}',
                               ),
                               Text(
                                 'Actualizado: ${_formatDateTime(report.updatedAt)}',
@@ -542,37 +387,20 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     }
   }
 
-  Future<void> _syncPending() async {
-    setState(() {
-      _isSyncing = true;
-      _message = null;
-    });
+  Future<void> _openAppStatus() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AppStatusScreen(
+          diagnosticsService: widget.diagnosticsService,
+          reportService: widget.reportService,
+        ),
+      ),
+    );
 
-    try {
-      final result = await widget.reportService.syncPendingReports();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSyncing = false;
-        _message = _buildSyncMessage(result);
-      });
-
+    // Al volver del panel de estado pudo haberse sincronizado, así que
+    // refrescamos la lista para reflejar los estados actualizados.
+    if (mounted) {
       await _reload();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSyncing = false;
-        _message = AppErrorFormatter.withPrefix(
-          'Error sincronizando',
-          error,
-          fallback: 'No se pudieron sincronizar los informes pendientes.',
-        );
-      });
     }
   }
 
@@ -627,19 +455,14 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     }
   }
 
-  String _buildSyncMessage(SyncBatchResult result) {
-    if (result.message != null && result.skipped) {
-      return result.message!;
-    }
-
-    final summary =
-        'Intentados: ${result.attempted}, exitosos: ${result.succeeded}, fallidos: ${result.failedUuids.length}.';
-    if (result.failedDetails.isEmpty) {
-      return summary;
-    }
-
-    final firstError = result.failedDetails.values.first;
-    return '$summary Primer error: $firstError';
+  /// Título mostrado en la tarjeta del informe. Los informes recuperados
+  /// (borradores que quedaron incompletos, p. ej. tras un cierre inesperado)
+  /// se prefijan con `recuperado_` para que el técnico los identifique.
+  String _reportTitle(MaintenanceReport report, {required bool recovered}) {
+    final baseName = report.location.trim().isEmpty
+        ? 'Informe ${report.uuid.substring(0, 8)}'
+        : report.location.trim();
+    return recovered ? 'recuperado_$baseName' : baseName;
   }
 
   String _buildPdfSavedMessage(String filePath) {
@@ -650,16 +473,10 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     return 'PDF generado correctamente: $filePath';
   }
 
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$day/$month/${value.year}';
-  }
-
   String _formatDateTime(DateTime value) {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
-    return '${_formatDate(value)} $hour:$minute';
+    return '${formatDisplayDate(value)} $hour:$minute';
   }
 
   Future<void> _resumeEditingSessionIfNeeded() async {

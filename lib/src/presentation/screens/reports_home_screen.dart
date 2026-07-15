@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../application/report_workflow_service.dart';
@@ -35,6 +37,7 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   String? _pdfGeneratingUuid;
   String? _message;
   bool _didAttemptSessionRestore = false;
+  bool _isAutoSyncing = false;
   List<MaintenanceReport> _reports = const [];
 
   @override
@@ -238,7 +241,22 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        _buildStatusBadge(report.syncStatus),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _buildStatusBadge(report.syncStatus),
+                            const SizedBox(height: 4),
+                            IconButton(
+                              tooltip: 'Eliminar informe',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => _confirmDeleteReport(report),
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -336,6 +354,8 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         _isLoading = false;
       });
 
+      unawaited(_autoSyncPendingReports());
+
       if (!_didAttemptSessionRestore) {
         _didAttemptSessionRestore = true;
         await _resumeEditingSessionIfNeeded();
@@ -353,6 +373,42 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
           fallback: 'No se pudieron cargar los informes guardados.',
         );
       });
+    }
+  }
+
+  /// Sincronización automática y silenciosa: se dispara cada vez que se
+  /// recarga la lista (al abrir la app, al volver de guardar un informe
+  /// nuevo/editado, al hacer "pull to refresh"...), así el técnico no tiene
+  /// que entrar al panel de estado y tocar "Sincronizar pendientes" a mano.
+  /// Si falla (sin internet, por ejemplo) no se muestra ningún error: el
+  /// informe queda "Pendiente" y se reintenta en la próxima recarga.
+  Future<void> _autoSyncPendingReports() async {
+    if (_isAutoSyncing || !widget.reportService.isRemoteSyncEnabled) {
+      return;
+    }
+
+    _isAutoSyncing = true;
+    try {
+      final result = await widget.reportService.syncPendingReports();
+      if (result.successfulUuids.isEmpty && result.failedUuids.isEmpty) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+
+      final reports = await widget.reportService.loadReports();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _reports = reports;
+      });
+    } catch (_) {
+      // Silencioso a propósito: no hay internet es un estado normal de una
+      // app offline-first, no un error que deba interrumpir al técnico.
+    } finally {
+      _isAutoSyncing = false;
     }
   }
 
@@ -452,6 +508,69 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
           _pdfGeneratingUuid = null;
         });
       }
+    }
+  }
+
+  Future<void> _confirmDeleteReport(MaintenanceReport report) async {
+    final title = _reportTitle(
+      report,
+      recovered: report.syncStatus == SyncStatus.draft,
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar informe'),
+        content: Text(
+          '¿Seguro que quieres eliminar "$title"? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      await widget.reportService.deleteReport(report);
+      if (!mounted) {
+        return;
+      }
+      await _reload();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe eliminado.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppErrorFormatter.withPrefix(
+              'No se pudo eliminar el informe',
+              error,
+              fallback: 'Intenta nuevamente.',
+            ),
+          ),
+        ),
+      );
     }
   }
 

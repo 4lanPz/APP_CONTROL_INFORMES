@@ -18,5 +18,8 @@ config/*.local.json
 # Config local del MCP (contiene el access token de Supabase)
 .mcp.json
 
+# Manual interno (bloqueo/licencia, credenciales, etc.) - no publicar
+MANUAL_INTERNO.md
+
 .idea/
 *.iml

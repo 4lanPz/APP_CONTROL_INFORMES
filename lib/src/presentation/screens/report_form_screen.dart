@@ -1297,12 +1297,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
 
   void _removePhoto(ReportPhotoType type, int index) {
     final updatedPaths = List<String>.from(_photoPathsFor(type));
-    updatedPaths.removeAt(index);
+    final removedPath = updatedPaths.removeAt(index);
 
     setState(() {
       _updatePhotoPaths(type, updatedPaths);
     });
     _markFormChanged(immediate: true);
+    unawaited(widget.reportService.deletePhotoFile(removedPath));
   }
 
   void _updatePhotoPaths(ReportPhotoType type, List<String> paths) {

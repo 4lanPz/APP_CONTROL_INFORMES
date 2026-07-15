@@ -62,9 +62,22 @@ La app ya quedó preparada para exigir un usuario autenticado antes de sincroniz
 
 Ejecuta el SQL de:
 
-`supabase/001_initial_schema.sql`
+`supabase/setup_maintenance_reports.sql`
 
-Ese esquema ya deja la tabla preparada con RLS para que cada usuario solo vea y actualice sus propios informes.
+Ese esquema coincide exactamente con lo que envía la app (ver
+`supabase_sync_service.dart` -> `_toRemoteRow`) y ya deja la tabla preparada
+con RLS para que cada usuario solo vea y actualice sus propios informes.
+
+## Activar el kill switch de licencia (opcional pero recomendado)
+
+Ejecuta también el SQL de:
+
+`supabase/setup_app_license.sql`
+
+Crea la tabla `app_license` (un interruptor remoto para activar/desactivar la
+app) y la función `get_app_license()` que usa `LicenseService`. Sin este
+script, la app queda siempre en el período de gracia offline de 15 días
+porque nunca logra verificar la licencia.
 
 ## Correr la app con variables
 

@@ -133,9 +133,11 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                 _StatusSection(
                   title: 'Base local',
                   headline: _StatusHeadline(
-                    isOk: data.databaseExists,
+                    isOk: data.databaseExists && data.databaseOpensOk,
                     okLabel: 'Correcta',
-                    errorLabel: 'Con falla',
+                    errorLabel: data.databaseExists
+                        ? 'No responde a consultas'
+                        : 'No encontrada',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -144,9 +146,11 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                 _StatusSection(
                   title: 'Base Supabase',
                   headline: _StatusHeadline(
-                    isOk: data.remoteSyncEnabled,
+                    isOk: data.remoteSyncEnabled && data.supabaseReachable,
                     okLabel: 'Correcta',
-                    errorLabel: 'Con falla',
+                    errorLabel: data.remoteSyncEnabled
+                        ? 'Sin conexión'
+                        : 'Desactivada en este build',
                   ),
                 ),
                 const SizedBox(height: 16),

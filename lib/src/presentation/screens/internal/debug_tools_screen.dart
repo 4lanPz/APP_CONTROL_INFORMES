@@ -56,6 +56,11 @@ class _DebugToolsScreenState extends State<DebugToolsScreen> {
                     value: data.remoteSyncEnabled ? 'Activo' : 'Desactivado',
                   ),
                   _InfoRow(
+                    label: 'Conectividad Supabase',
+                    value:
+                        data.supabaseReachable ? 'Responde' : 'Sin respuesta',
+                  ),
+                  _InfoRow(
                     label: 'Auth anónima',
                     value: data.anonymousAuthEnabled ? 'Activa' : 'Desactivada',
                   ),
@@ -76,9 +81,11 @@ class _DebugToolsScreenState extends State<DebugToolsScreen> {
                 children: [
                   _InfoRow(
                     label: 'Base de datos',
-                    value: data.databaseExists
-                        ? 'Disponible (${_formatBytes(data.databaseSizeBytes)})'
-                        : 'No encontrada',
+                    value: !data.databaseExists
+                        ? 'No encontrada'
+                        : data.databaseOpensOk
+                            ? 'Disponible (${_formatBytes(data.databaseSizeBytes)})'
+                            : 'Archivo presente pero no responde a consultas',
                   ),
                   _InfoRow(label: 'Ruta DB', value: data.databasePath),
                   _InfoRow(label: 'Documentos app', value: data.documentsPath),

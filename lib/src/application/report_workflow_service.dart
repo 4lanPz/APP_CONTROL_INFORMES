@@ -171,6 +171,19 @@ class ReportWorkflowService {
     );
   }
 
+  /// Elimina el registro de un informe de la base local. Las fotos y firmas
+  /// asociadas se conservan en el dispositivo a propósito (no se borran).
+  /// No afecta lo que ya se haya sincronizado a Supabase.
+  Future<void> deleteReport(MaintenanceReport report) async {
+    await _repository.delete(report.uuid);
+  }
+
+  /// Borra un archivo de foto ya persistido en disco (best-effort). Se usa
+  /// al quitar una foto del formulario para no acumular archivos huérfanos.
+  Future<void> deletePhotoFile(String path) {
+    return _fileService.deleteFile(path);
+  }
+
   Future<File> generatePdf(
     MaintenanceReport report, {
     String? logoPath,

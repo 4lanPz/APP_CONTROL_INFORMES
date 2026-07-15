@@ -18,6 +18,7 @@ class AppDebugSnapshot {
     required this.documentsPath,
     required this.databasePath,
     required this.databaseExists,
+    required this.databaseOpensOk,
     required this.databaseSizeBytes,
     required this.totalReports,
     required this.pendingReports,
@@ -34,12 +35,18 @@ class AppDebugSnapshot {
     required this.anonymousAuthEnabled,
     required this.supabaseProjectHost,
     required this.supabaseUserId,
+    required this.supabaseReachable,
   });
 
   final String appVersion;
   final String documentsPath;
   final String databasePath;
   final bool databaseExists;
+
+  /// A diferencia de [databaseExists] (solo mira si el archivo está en
+  /// disco), esto confirma que se pudo hacer una consulta real contra la
+  /// tabla de informes.
+  final bool databaseOpensOk;
   final int databaseSizeBytes;
   final int totalReports;
   final int pendingReports;
@@ -57,12 +64,17 @@ class AppDebugSnapshot {
   final String supabaseProjectHost;
   final String? supabaseUserId;
 
+  /// Resultado de una prueba de conectividad real contra Supabase (no solo
+  /// el flag de compilación [remoteSyncEnabled]).
+  final bool supabaseReachable;
+
   Map<String, dynamic> toJson() {
     return {
       'app_version': appVersion,
       'documents_path': documentsPath,
       'database_path': databasePath,
       'database_exists': databaseExists,
+      'database_opens_ok': databaseOpensOk,
       'database_size_bytes': databaseSizeBytes,
       'total_reports': totalReports,
       'pending_reports': pendingReports,
@@ -79,6 +91,7 @@ class AppDebugSnapshot {
       'anonymous_auth_enabled': anonymousAuthEnabled,
       'supabase_project_host': supabaseProjectHost,
       'supabase_user_id': supabaseUserId,
+      'supabase_reachable': supabaseReachable,
     };
   }
 }
@@ -99,9 +112,23 @@ class AppDiagnosticsService {
   final ReportFileService fileService;
   final EditingSessionService editingSessionService;
 
+  /// Timeout de la prueba de conectividad con Supabase para no colgar el
+  /// panel de estado si no hay internet.
+  static const _connectivityTimeout = Duration(seconds: 6);
+
   Future<AppDebugSnapshot> collectSnapshot() async {
     final documentsDirectory = await fileService.getDocumentsDirectory();
-    final reports = await repository.list();
+
+    List<MaintenanceReport> reports;
+    bool databaseOpensOk;
+    try {
+      reports = await repository.list();
+      databaseOpensOk = true;
+    } catch (_) {
+      reports = const [];
+      databaseOpensOk = false;
+    }
+
     final databaseFile = File(
       p.join(documentsDirectory.path, config.localDatabaseName),
     );
@@ -121,12 +148,14 @@ class AppDiagnosticsService {
     final supabaseUserId = config.canUseSupabase
         ? Supabase.instance.client.auth.currentUser?.id
         : null;
+    final supabaseReachable = await _checkSupabaseReachable();
 
     return AppDebugSnapshot(
       appVersion: appVersionLabel,
       documentsPath: documentsDirectory.path,
       databasePath: databaseFile.path,
       databaseExists: databaseExists,
+      databaseOpensOk: databaseOpensOk,
       databaseSizeBytes: databaseSizeBytes,
       totalReports: reports.length,
       pendingReports: reports
@@ -149,7 +178,28 @@ class AppDiagnosticsService {
       anonymousAuthEnabled: config.useSupabaseAnonymousAuth,
       supabaseProjectHost: _buildSupabaseProjectHost(config.supabaseUrl),
       supabaseUserId: supabaseUserId,
+      supabaseReachable: supabaseReachable,
     );
+  }
+
+  /// Prueba real de conectividad: llama a la misma función RPC pública que
+  /// usa el kill switch de licencia (`get_app_license`, ver
+  /// `LicenseService`). Es un endpoint liviano, no requiere sesión activa y
+  /// ya está expuesto a `anon`/`authenticated`, así que sirve como ping
+  /// honesto de "¿Supabase responde?" sin depender de un flag de build.
+  Future<bool> _checkSupabaseReachable() async {
+    if (!config.canUseSupabase) {
+      return false;
+    }
+
+    try {
+      await Supabase.instance.client
+          .rpc('get_app_license')
+          .timeout(_connectivityTimeout);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<File> exportBackupArchive() async {

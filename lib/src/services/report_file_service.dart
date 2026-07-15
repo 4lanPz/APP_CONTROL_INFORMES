@@ -59,6 +59,22 @@ class ReportFileService {
     return targetPath;
   }
 
+  /// Borra del disco un archivo de foto/firma ya persistido (best-effort: si
+  /// no existe o falla al borrarse, no lanza error).
+  Future<void> deleteFile(String path) async {
+    if (path.trim().isEmpty) {
+      return;
+    }
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Best-effort: no bloqueamos la edición del formulario por esto.
+    }
+  }
+
   Future<File> savePdf({
     required MaintenanceReport report,
     required List<int> bytes,

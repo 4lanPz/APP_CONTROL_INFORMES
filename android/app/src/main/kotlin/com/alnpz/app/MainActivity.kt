@@ -19,36 +19,6 @@ class MainActivity : FlutterActivity() {
             STORAGE_CHANNEL,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
-                "savePdfToDownloads" -> {
-                    val fileName = call.argument<String>("fileName")
-                    val subdirectory = call.argument<String>("subdirectory").orEmpty()
-                    val bytes = call.argument<ByteArray>("bytes")
-
-                    if (fileName.isNullOrBlank() || bytes == null || bytes.isEmpty()) {
-                        result.error(
-                            "invalid_args",
-                            "fileName and bytes are required to save the PDF.",
-                            null,
-                        )
-                        return@setMethodCallHandler
-                    }
-
-                    try {
-                        val savedPath = saveBytesToDownloads(
-                            fileName = fileName,
-                            subdirectory = subdirectory,
-                            mimeType = PDF_MIME_TYPE,
-                            bytes = bytes,
-                        )
-                        result.success(savedPath)
-                    } catch (error: Exception) {
-                        result.error(
-                            "save_failed",
-                            error.message,
-                            null,
-                        )
-                    }
-                }
                 "saveBytesToDownloads" -> {
                     val fileName = call.argument<String>("fileName")
                     val subdirectory = call.argument<String>("subdirectory").orEmpty()
@@ -97,7 +67,29 @@ class MainActivity : FlutterActivity() {
             )
         }
 
-        return saveWithMediaStore(fileName, subdirectory, mimeType, bytes)
+        // Nunca confiamos en texto que llega desde el lado Dart para armar
+        // rutas de archivo: se sanea aquí también (no solo del lado Dart),
+        // siguiendo la recomendación de Android de no construir rutas de
+        // MediaStore/ContentValues con datos externos sin validar.
+        val safeFileName = sanitizeFileName(fileName)
+        val safeSubdirectory = sanitizeSubdirectory(subdirectory)
+
+        return saveWithMediaStore(safeFileName, safeSubdirectory, mimeType, bytes)
+    }
+
+    private fun sanitizeFileName(rawFileName: String): String {
+        val nameOnly = File(rawFileName).name
+        val sanitized = nameOnly.replace(Regex("[/\\\\:*?\"<>|]"), "_").trim()
+        return sanitized.ifBlank { "archivo" }
+    }
+
+    private fun sanitizeSubdirectory(rawSubdirectory: String): String {
+        val segments = rawSubdirectory
+            .split('/', '\\')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it != "." && it != ".." }
+            .map { it.replace(Regex("[:*?\"<>|]"), "_") }
+        return segments.joinToString("/")
     }
 
     private fun saveWithMediaStore(
@@ -161,6 +153,5 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val STORAGE_CHANNEL = "app_control_informes/storage"
-        const val PDF_MIME_TYPE = "application/pdf"
     }
 }

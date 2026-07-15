@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/app_diagnostics_service.dart';
 import '../../../services/app_error_formatter.dart';
+import '../../widgets/info_row.dart';
 
 class DebugToolsScreen extends StatefulWidget {
   const DebugToolsScreen({
@@ -31,123 +32,126 @@ class _DebugToolsScreenState extends State<DebugToolsScreen> {
       appBar: AppBar(
         title: const Text('Diagnóstico interno'),
       ),
-      body: FutureBuilder<AppDebugSnapshot>(
-        future: _snapshotFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: SafeArea(
+        child: FutureBuilder<AppDebugSnapshot>(
+          future: _snapshotFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return _buildErrorState(
-                snapshot.error ?? StateError('Unknown error'));
-          }
+            if (snapshot.hasError) {
+              return _buildErrorState(
+                  snapshot.error ?? StateError('Unknown error'));
+            }
 
-          final data = snapshot.requireData;
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _SectionCard(
-                title: 'Resumen',
-                children: [
-                  _InfoRow(label: 'Versión', value: data.appVersion),
-                  _InfoRow(
-                    label: 'Sync remoto',
-                    value: data.remoteSyncEnabled ? 'Activo' : 'Desactivado',
-                  ),
-                  _InfoRow(
-                    label: 'Conectividad Supabase',
-                    value:
-                        data.supabaseReachable ? 'Responde' : 'Sin respuesta',
-                  ),
-                  _InfoRow(
-                    label: 'Auth anónima',
-                    value: data.anonymousAuthEnabled ? 'Activa' : 'Desactivada',
-                  ),
-                  _InfoRow(
-                      label: 'Proyecto Supabase',
-                      value: data.supabaseProjectHost),
-                  _InfoRow(
-                    label: 'Usuario Supabase',
-                    value: data.supabaseUserId?.trim().isNotEmpty == true
-                        ? data.supabaseUserId!
-                        : 'Sin sesión',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Base local',
-                children: [
-                  _InfoRow(
-                    label: 'Base de datos',
-                    value: !data.databaseExists
-                        ? 'No encontrada'
-                        : data.databaseOpensOk
-                            ? 'Disponible (${_formatBytes(data.databaseSizeBytes)})'
-                            : 'Archivo presente pero no responde a consultas',
-                  ),
-                  _InfoRow(label: 'Ruta DB', value: data.databasePath),
-                  _InfoRow(label: 'Documentos app', value: data.documentsPath),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Informes locales',
-                children: [
-                  _InfoRow(label: 'Total', value: '${data.totalReports}'),
-                  _InfoRow(
-                      label: 'Pendientes', value: '${data.pendingReports}'),
-                  _InfoRow(
-                      label: 'Sincronizados', value: '${data.syncedReports}'),
-                  _InfoRow(label: 'Con error', value: '${data.errorReports}'),
-                  _InfoRow(
-                    label: 'Informe activo',
-                    value: data.activeEditingReportUuid ?? 'Ninguno',
-                  ),
-                  _InfoRow(
-                    label: 'Sesión de edición',
-                    value: data.sessionFileExists
-                        ? data.sessionFilePath
-                        : 'No existe',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Archivos locales',
-                children: [
-                  _InfoRow(label: 'Fotos', value: '${data.photosCount}'),
-                  _InfoRow(label: 'Ruta fotos', value: data.photosPath),
-                  _InfoRow(label: 'Firmas', value: '${data.signaturesCount}'),
-                  _InfoRow(label: 'Ruta firmas', value: data.signaturesPath),
-                ],
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _isExportingBackup ? null : _exportBackup,
-                icon: _isExportingBackup
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2.2),
-                      )
-                    : const Icon(Icons.folder_zip_outlined),
-                label: Text(
-                  _isExportingBackup
-                      ? 'Exportando respaldo...'
-                      : 'Crear respaldo local (.zip)',
+            final data = snapshot.requireData;
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _SectionCard(
+                  title: 'Resumen',
+                  children: [
+                    InfoRow(label: 'Versión', value: data.appVersion),
+                    InfoRow(
+                      label: 'Sync remoto',
+                      value: data.remoteSyncEnabled ? 'Activo' : 'Desactivado',
+                    ),
+                    InfoRow(
+                      label: 'Conectividad Supabase',
+                      value:
+                          data.supabaseReachable ? 'Responde' : 'Sin respuesta',
+                    ),
+                    InfoRow(
+                      label: 'Auth anónima',
+                      value:
+                          data.anonymousAuthEnabled ? 'Activa' : 'Desactivada',
+                    ),
+                    InfoRow(
+                        label: 'Proyecto Supabase',
+                        value: data.supabaseProjectHost),
+                    InfoRow(
+                      label: 'Usuario Supabase',
+                      value: data.supabaseUserId?.trim().isNotEmpty == true
+                          ? data.supabaseUserId!
+                          : 'Sin sesión',
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _reload,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Actualizar diagnóstico'),
-              ),
-            ],
-          );
-        },
+                const SizedBox(height: 16),
+                _SectionCard(
+                  title: 'Base local',
+                  children: [
+                    InfoRow(
+                      label: 'Base de datos',
+                      value: !data.databaseExists
+                          ? 'No encontrada'
+                          : data.databaseOpensOk
+                              ? 'Disponible (${_formatBytes(data.databaseSizeBytes)})'
+                              : 'Archivo presente pero no responde a consultas',
+                    ),
+                    InfoRow(label: 'Ruta DB', value: data.databasePath),
+                    InfoRow(label: 'Documentos app', value: data.documentsPath),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _SectionCard(
+                  title: 'Informes locales',
+                  children: [
+                    InfoRow(label: 'Total', value: '${data.totalReports}'),
+                    InfoRow(
+                        label: 'Pendientes', value: '${data.pendingReports}'),
+                    InfoRow(
+                        label: 'Sincronizados', value: '${data.syncedReports}'),
+                    InfoRow(label: 'Con error', value: '${data.errorReports}'),
+                    InfoRow(
+                      label: 'Informe activo',
+                      value: data.activeEditingReportUuid ?? 'Ninguno',
+                    ),
+                    InfoRow(
+                      label: 'Sesión de edición',
+                      value: data.sessionFileExists
+                          ? data.sessionFilePath
+                          : 'No existe',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _SectionCard(
+                  title: 'Archivos locales',
+                  children: [
+                    InfoRow(label: 'Fotos', value: '${data.photosCount}'),
+                    InfoRow(label: 'Ruta fotos', value: data.photosPath),
+                    InfoRow(label: 'Firmas', value: '${data.signaturesCount}'),
+                    InfoRow(label: 'Ruta firmas', value: data.signaturesPath),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _isExportingBackup ? null : _exportBackup,
+                  icon: _isExportingBackup
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : const Icon(Icons.folder_zip_outlined),
+                  label: Text(
+                    _isExportingBackup
+                        ? 'Exportando respaldo...'
+                        : 'Crear respaldo local (.zip)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _reload,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualizar diagnóstico'),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -271,34 +275,6 @@ class _SectionCard extends StatelessWidget {
             ...children,
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 2),
-          SelectableText(value),
-        ],
       ),
     );
   }

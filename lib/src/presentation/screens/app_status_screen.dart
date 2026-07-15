@@ -4,6 +4,7 @@ import '../../application/report_workflow_service.dart';
 import '../../data/remote/supabase_sync_service.dart';
 import '../../services/app_diagnostics_service.dart';
 import '../../services/app_error_formatter.dart';
+import '../widgets/info_row.dart';
 
 /// Panel de estado de la app (icono de engranaje del home).
 ///
@@ -109,24 +110,25 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<AppDebugSnapshot>(
-        future: _snapshotFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: SafeArea(
+        child: FutureBuilder<AppDebugSnapshot>(
+          future: _snapshotFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return _buildErrorState(
-              snapshot.error ?? StateError('Unknown error'),
-            );
-          }
+            if (snapshot.hasError) {
+              return _buildErrorState(
+                snapshot.error ?? StateError('Unknown error'),
+              );
+            }
 
-          final data = snapshot.requireData;
-          final hasSupabaseSession =
-              data.supabaseUserId?.trim().isNotEmpty == true;
+            final data = snapshot.requireData;
+            final hasSupabaseSession =
+                data.supabaseUserId?.trim().isNotEmpty == true;
 
-          return ListView(
+            return ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // 1. Base local.
@@ -159,16 +161,16 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                 _StatusSection(
                   title: 'Informes',
                   rows: [
-                    _InfoRow(label: 'Total', value: '${data.totalReports}'),
-                    _InfoRow(
+                    InfoRow(label: 'Total', value: '${data.totalReports}'),
+                    InfoRow(
                       label: 'Pendientes de envío',
                       value: '${data.pendingReports}',
                     ),
-                    _InfoRow(
+                    InfoRow(
                       label: 'Enviados',
                       value: '${data.syncedReports}',
                     ),
-                    _InfoRow(
+                    InfoRow(
                       label: 'Con error',
                       value: '${data.errorReports}',
                     ),
@@ -180,7 +182,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                 _StatusSection(
                   title: 'Usuario actual',
                   rows: [
-                    _InfoRow(
+                    InfoRow(
                       label: 'UUID',
                       value: hasSupabaseSession
                           ? data.supabaseUserId!
@@ -214,9 +216,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                         )
                       : const Icon(Icons.sync),
                   label: Text(
-                    _isSyncing
-                        ? 'Sincronizando...'
-                        : 'Sincronizar pendientes',
+                    _isSyncing ? 'Sincronizando...' : 'Sincronizar pendientes',
                   ),
                 ),
                 if (!data.remoteSyncEnabled)
@@ -232,7 +232,8 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
             );
           },
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildErrorState(Object error) {
@@ -263,7 +264,6 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
       ),
     );
   }
-
 }
 
 class _StatusSection extends StatelessWidget {
@@ -342,34 +342,6 @@ class _StatusHeadline extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 2),
-          SelectableText(value),
         ],
       ),
     );

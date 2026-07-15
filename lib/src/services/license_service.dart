@@ -62,8 +62,7 @@ class LicenseService {
       }
 
       final active = row['is_active'] == true;
-      final serverTime =
-          DateTime.parse(row['server_time'] as String).toUtc();
+      final serverTime = DateTime.parse(row['server_time'] as String).toUtc();
       final deviceNow = DateTime.now().toUtc();
 
       await _saveCache(

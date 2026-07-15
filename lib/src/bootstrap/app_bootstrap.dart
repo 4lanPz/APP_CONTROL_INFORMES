@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../application/report_workflow_service.dart';
@@ -71,11 +72,13 @@ class AppBootstrap {
       syncService: syncService,
       validator: validator,
     );
+    final packageInfo = await PackageInfo.fromPlatform();
     final diagnosticsService = AppDiagnosticsService(
       config: config,
       repository: reportRepository,
       fileService: fileService,
       editingSessionService: editingSessionService,
+      appVersion: 'Versión ${packageInfo.version} (${packageInfo.buildNumber})',
     );
 
     final licenseService = LicenseService(config: config);

@@ -90,7 +90,7 @@ class _DeveloperInfoScreenState extends State<DeveloperInfoScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          AppDiagnosticsService.appVersionLabel,
+          widget.diagnosticsService.appVersion,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],

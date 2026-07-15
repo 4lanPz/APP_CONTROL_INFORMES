@@ -61,12 +61,6 @@ class MainActivity : FlutterActivity() {
         mimeType: String,
         bytes: ByteArray,
     ): String {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            throw IOException(
-                "Guardar archivos en Descargas requiere Android 10 o superior.",
-            )
-        }
-
         // Nunca confiamos en texto que llega desde el lado Dart para armar
         // rutas de archivo: se sanea aquí también (no solo del lado Dart),
         // siguiendo la recomendación de Android de no construir rutas de
@@ -74,7 +68,45 @@ class MainActivity : FlutterActivity() {
         val safeFileName = sanitizeFileName(fileName)
         val safeSubdirectory = sanitizeSubdirectory(subdirectory)
 
-        return saveWithMediaStore(safeFileName, safeSubdirectory, mimeType, bytes)
+        // Android 10+ (API 29): almacenamiento con ámbito (scoped storage).
+        // Se usa MediaStore para que el archivo quede en la carpeta pública
+        // "Descargas", visible desde el explorador de archivos o WhatsApp.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return saveWithMediaStore(safeFileName, safeSubdirectory, mimeType, bytes)
+        }
+
+        // Android 5-9 (API < 29): MediaStore.Downloads no existe todavía, y
+        // escribir en la carpeta pública de Descargas requeriría pedir el
+        // permiso peligroso WRITE_EXTERNAL_STORAGE en tiempo de ejecución.
+        // En vez de eso se guarda en el almacenamiento externo propio de la
+        // app (getExternalFilesDir), que no requiere ningún permiso en
+        // ninguna versión de Android y sigue siendo accesible para el
+        // técnico desde un explorador de archivos, dentro de
+        // Android/data/com.alnpz.app/files/Download.
+        return saveWithLegacyExternalStorage(safeFileName, safeSubdirectory, bytes)
+    }
+
+    private fun saveWithLegacyExternalStorage(
+        fileName: String,
+        subdirectory: String,
+        bytes: ByteArray,
+    ): String {
+        val downloadsRoot = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            ?: throw IOException("No se pudo acceder al almacenamiento externo del dispositivo.")
+
+        val targetDirectory = if (subdirectory.isBlank()) {
+            downloadsRoot
+        } else {
+            File(downloadsRoot, subdirectory)
+        }
+
+        if (!targetDirectory.exists() && !targetDirectory.mkdirs()) {
+            throw IOException("No se pudo crear la carpeta de destino.")
+        }
+
+        val targetFile = File(targetDirectory, fileName)
+        targetFile.writeBytes(bytes)
+        return targetFile.absolutePath
     }
 
     private fun sanitizeFileName(rawFileName: String): String {

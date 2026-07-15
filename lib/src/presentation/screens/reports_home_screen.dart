@@ -82,55 +82,57 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Nuevo informe'),
       ),
-      body: RefreshIndicator(
-        onRefresh: _reload,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            if (_message != null) ...[
-              _buildMessageCard(_message!),
-              const SizedBox(height: 16),
-            ],
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_reports.isEmpty)
-              _buildEmptyState()
-            else ...[
-              if (recoveredReports.isNotEmpty) ...[
-                _buildGroupSection(
-                  title: 'Recuperados',
-                  emptyLabel: 'No hay informes recuperados.',
-                  reports: recoveredReports,
-                  color: const Color(0xFF7F8C8D),
-                  recovered: true,
-                ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _reload,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
+              if (_message != null) ...[
+                _buildMessageCard(_message!),
                 const SizedBox(height: 16),
               ],
-              _buildGroupSection(
-                title: 'Pendientes',
-                emptyLabel: 'No hay informes pendientes.',
-                reports: pendingReports,
-                color: const Color(0xFFF0B429),
-              ),
-              const SizedBox(height: 16),
-              _buildGroupSection(
-                title: 'Enviados',
-                emptyLabel: 'No hay informes enviados.',
-                reports: syncedReports,
-                color: const Color(0xFF1F8F5F),
-              ),
-              const SizedBox(height: 16),
-              _buildGroupSection(
-                title: 'Con error',
-                emptyLabel: 'No hay informes con error.',
-                reports: errorReports,
-                color: const Color(0xFFC0392B),
-              ),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_reports.isEmpty)
+                _buildEmptyState()
+              else ...[
+                if (recoveredReports.isNotEmpty) ...[
+                  _buildGroupSection(
+                    title: 'Recuperados',
+                    emptyLabel: 'No hay informes recuperados.',
+                    reports: recoveredReports,
+                    color: const Color(0xFF7F8C8D),
+                    recovered: true,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _buildGroupSection(
+                  title: 'Pendientes',
+                  emptyLabel: 'No hay informes pendientes.',
+                  reports: pendingReports,
+                  color: const Color(0xFFF0B429),
+                ),
+                const SizedBox(height: 16),
+                _buildGroupSection(
+                  title: 'Enviados',
+                  emptyLabel: 'No hay informes enviados.',
+                  reports: syncedReports,
+                  color: const Color(0xFF1F8F5F),
+                ),
+                const SizedBox(height: 16),
+                _buildGroupSection(
+                  title: 'Con error',
+                  emptyLabel: 'No hay informes con error.',
+                  reports: errorReports,
+                  color: const Color(0xFFC0392B),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

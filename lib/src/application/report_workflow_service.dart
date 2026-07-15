@@ -184,11 +184,8 @@ class ReportWorkflowService {
     return _fileService.deleteFile(path);
   }
 
-  Future<File> generatePdf(
-    MaintenanceReport report, {
-    String? logoPath,
-  }) {
-    return _pdfService.generateReportPdf(report, logoPath: logoPath);
+  Future<File> generatePdf(MaintenanceReport report) {
+    return _pdfService.generateReportPdf(report);
   }
 
   List<ReportValidationError> validateReport(MaintenanceReport report) {

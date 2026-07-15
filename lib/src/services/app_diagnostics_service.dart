@@ -102,15 +102,21 @@ class AppDiagnosticsService {
     required this.repository,
     required this.fileService,
     required this.editingSessionService,
+    required this.appVersion,
   });
 
-  static const appVersionLabel = 'Versión 0.9';
   static const _backupSubdirectory = 'TecnoReport Backups';
 
   final AppConfig config;
   final MaintenanceReportRepository repository;
   final ReportFileService fileService;
   final EditingSessionService editingSessionService;
+
+  /// Versión mostrada al usuario, leída del propio paquete instalado
+  /// (`pubspec.yaml` -> Android `versionName`/`versionCode`) vía
+  /// `package_info_plus`. Se resuelve una sola vez en [AppBootstrap] para
+  /// que nunca quede desincronizada de la versión real del APK.
+  final String appVersion;
 
   /// Timeout de la prueba de conectividad con Supabase para no colgar el
   /// panel de estado si no hay internet.
@@ -151,7 +157,7 @@ class AppDiagnosticsService {
     final supabaseReachable = await _checkSupabaseReachable();
 
     return AppDebugSnapshot(
-      appVersion: appVersionLabel,
+      appVersion: appVersion,
       documentsPath: documentsDirectory.path,
       databasePath: databaseFile.path,
       databaseExists: databaseExists,
@@ -234,7 +240,7 @@ class AppDiagnosticsService {
       'manifest/backup_info.json',
       const JsonEncoder.withIndent('  ').convert({
         'generated_at': generatedAt.toIso8601String(),
-        'app_version': appVersionLabel,
+        'app_version': appVersion,
         'database_name': config.localDatabaseName,
         'reports_table': config.supabaseReportsTable,
       }),

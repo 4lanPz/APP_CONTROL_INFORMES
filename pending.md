@@ -63,3 +63,13 @@ todo con `LockedScreen`.
 
 En `DeveloperInfoScreen`, el perfil de "Ingrith-R2" tiene `emailAddress`
 vacío. Se deja así a propósito hasta terminar el desarrollo.
+
+## 7. Caché de licencia sin cifrar
+
+`license_cache.json` (`LicenseService`) se guarda en texto plano en el
+almacenamiento de la app. Alguien con acceso root al dispositivo podría
+editarlo a mano (`active: true`) para burlar el kill switch durante el
+período de gracia. No es explotable de forma remota ni por un usuario
+normal sin root; si en algún momento la licencia se vuelve crítica para el
+negocio, valdría la pena cifrar el archivo o firmarlo con una clave que no
+viva en el propio dispositivo.

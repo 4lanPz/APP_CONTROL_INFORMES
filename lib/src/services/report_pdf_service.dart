@@ -13,21 +13,25 @@ class ReportPdfService {
   const ReportPdfService(this._fileService);
 
   static const _templateAssetPath = 'assets/templates/Formulario_base.pdf';
+  static const _logoAssetPath = 'assets/branding/cfc_logo.jpg';
   static const _showDraftWatermark = true;
   static const _draftWatermarkLabel = 'BORRADOR';
 
+  static const _companyName = 'CFC² ENGINEERING SOLUTIONS';
+  static const _companyAddress =
+      'Juan Bautista Aguirre S7-65 y Bobonaza, sector Pio XII';
+  static const _companyEmail = 'cfc2.engineering.solutions@hotmail.com';
+  static const _companyPhone = '0992795022';
+
   final ReportFileService _fileService;
 
-  Future<File> generateReportPdf(
-    MaintenanceReport report, {
-    String? logoPath,
-  }) async {
+  Future<File> generateReportPdf(MaintenanceReport report) async {
     final document = pw.Document(
       title: 'Informe ${report.uuid}',
       author: 'APP_CONTROL_INFORMES',
     );
 
-    final logoImage = await _loadOptionalImage(logoPath);
+    final logoImage = await _loadLogo();
     final beforeImages = await _loadOptionalImages(report.photos.beforePaths);
     final afterImages = await _loadOptionalImages(report.photos.afterPaths);
     final technicianSignature = await _loadOptionalImage(
@@ -195,38 +199,59 @@ class ReportPdfService {
     MaintenanceReport report,
     pw.MemoryImage? logoImage,
   ) {
-    return pw.Row(
+    return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        if (logoImage != null)
-          pw.Container(
-            width: 58,
-            height: 58,
-            margin: const pw.EdgeInsets.only(right: 12),
-            child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            if (logoImage != null)
+              pw.Container(
+                width: 58,
+                height: 58,
+                margin: const pw.EdgeInsets.only(right: 12),
+                child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+              ),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    _companyName,
+                    style: pw.TextStyle(
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColor.fromHex('#184A45'),
+                    ),
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    _companyAddress,
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                  pw.Text(
+                    '$_companyEmail | Cel: $_companyPhone',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 8),
+        pw.Divider(color: PdfColors.grey400, thickness: 0.7),
+        pw.SizedBox(height: 6),
+        pw.Text(
+          'Informe de mantenimiento de grupo electrógeno',
+          style: pw.TextStyle(
+            fontSize: 14,
+            fontWeight: pw.FontWeight.bold,
           ),
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                'Informe de mantenimiento de grupo electrógeno',
-                style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 2),
-              pw.Text(
-                'UUID: ${report.uuid}',
-                style: const pw.TextStyle(fontSize: 8.5),
-              ),
-              pw.Text(
-                'Plantilla base: assets/templates/Formulario_base.pdf',
-                style: const pw.TextStyle(fontSize: 8.5),
-              ),
-            ],
-          ),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          'UUID: ${report.uuid}',
+          style: const pw.TextStyle(fontSize: 8.5),
         ),
       ],
     );
@@ -465,6 +490,19 @@ class ReportPdfService {
         pw.Text(label),
       ],
     );
+  }
+
+  Future<pw.MemoryImage?> _loadLogo() async {
+    try {
+      final logoData = await rootBundle.load(_logoAssetPath);
+      final logoBytes = logoData.buffer.asUint8List(
+        logoData.offsetInBytes,
+        logoData.lengthInBytes,
+      );
+      return pw.MemoryImage(logoBytes);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<pw.MemoryImage?> _loadTemplateBackground() async {

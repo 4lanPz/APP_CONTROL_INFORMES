@@ -1,8 +1,9 @@
 import 'dart:convert';
 
+import 'package:sqflite/sqflite.dart';
+
 import '../../domain/models/maintenance_report.dart';
 import '../../domain/repositories/maintenance_report_repository.dart';
-import '../../utils/date_formats.dart';
 import 'app_database.dart';
 
 class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
@@ -58,31 +59,22 @@ class LocalMaintenanceReportRepository implements MaintenanceReportRepository {
   @override
   Future<MaintenanceReport> save(MaintenanceReport report) async {
     final db = await _database.instance;
-    final current = await findByUuid(report.uuid);
 
     final row = {
       'uuid': report.uuid,
-      'service_date': formatIsoDate(report.serviceDate),
-      'maintenance_type': report.maintenanceType.apiValue,
-      'location': report.location,
-      'technician_name': report.technician.name,
       'sync_status': report.syncStatus.apiValue,
-      'created_at': report.createdAt.toIso8601String(),
       'updated_at': report.updatedAt.toIso8601String(),
-      'synced_at': report.syncedAt?.toIso8601String(),
       'payload_json': jsonEncode(report.toJson()),
     };
 
-    if (current == null) {
-      await db.insert(AppDatabase.reportsTable, row);
-    } else {
-      await db.update(
-        AppDatabase.reportsTable,
-        row,
-        where: 'uuid = ?',
-        whereArgs: [report.uuid],
-      );
-    }
+    // `uuid` es UNIQUE, así que un solo insert con REPLACE cubre tanto
+    // crear como actualizar sin necesitar un SELECT previo para decidir
+    // cuál de los dos hacer.
+    await db.insert(
+      AppDatabase.reportsTable,
+      row,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
 
     return (await findByUuid(report.uuid))!;
   }

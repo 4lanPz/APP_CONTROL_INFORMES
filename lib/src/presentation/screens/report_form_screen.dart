@@ -168,6 +168,13 @@ class _ReportFormScreenState extends State<ReportFormScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _autoSaveTimer?.cancel();
+    // Si había una edición pendiente de auto-guardar (dentro de la ventana de
+    // debounce de 700ms) y la pantalla se cierra ahora mismo -por ejemplo con
+    // el botón atrás, sin pasar por "Guardar informe"-, no la descartamos:
+    // se guarda igual como borrador antes de destruir los controllers.
+    if (_hasPendingChanges) {
+      unawaited(_persistDraft(immediate: true));
+    }
     unawaited(widget.editingSessionService.clearActiveReportUuid());
     _locationController.dispose();
     _hourMeterController.dispose();

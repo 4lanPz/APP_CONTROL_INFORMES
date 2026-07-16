@@ -1,9 +1,12 @@
 ﻿package com.alnpz.app
 
+import android.content.ActivityNotFoundException
 import android.content.ContentValues
+import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -50,9 +53,62 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                 }
+                "openPdfExternally" -> {
+                    val path = call.argument<String>("path")
+
+                    if (path.isNullOrBlank()) {
+                        result.error(
+                            "invalid_args",
+                            "path is required.",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        openPdfExternally(path)
+                        result.success(null)
+                    } catch (error: ActivityNotFoundException) {
+                        result.error(
+                            "no_viewer_app",
+                            "No se encontró una aplicación para ver el PDF.",
+                            null,
+                        )
+                    } catch (error: Exception) {
+                        result.error(
+                            "open_failed",
+                            error.message,
+                            null,
+                        )
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    // Abre el PDF ya generado con el selector nativo de Android ("Abrir con"),
+    // para que el técnico elija en qué app verlo y desde ahí decida si lo
+    // guarda o lo comparte. Usa FileProvider (en vez de un file:// directo)
+    // porque desde Android 7 (API 24) compartir un Uri file:// entre apps
+    // lanza FileUriExposedException; content:// funciona igual en todas las
+    // versiones soportadas por esta app (minSdk 21+).
+    private fun openPdfExternally(path: String) {
+        val file = File(path)
+        if (!file.exists()) {
+            throw IOException("El archivo PDF ya no existe.")
+        }
+
+        val authority = "$packageName.fileprovider"
+        val uri = FileProvider.getUriForFile(this, authority, file)
+
+        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        val chooser = Intent.createChooser(viewIntent, "Abrir informe PDF con")
+        startActivity(chooser)
     }
 
     private fun saveBytesToDownloads(

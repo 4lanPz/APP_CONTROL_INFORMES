@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../domain/models/maintenance_report.dart';
 import '../utils/date_formats.dart';
@@ -12,10 +11,7 @@ import 'report_file_service.dart';
 class ReportPdfService {
   const ReportPdfService(this._fileService);
 
-  static const _templateAssetPath = 'assets/templates/Formulario_base.pdf';
   static const _logoAssetPath = 'assets/branding/cfc_logo.jpg';
-  static const _showDraftWatermark = true;
-  static const _draftWatermarkLabel = 'BORRADOR';
 
   static const _companyName = 'CFC² ENGINEERING SOLUTIONS';
   static const _companyAddress =
@@ -40,24 +36,11 @@ class ReportPdfService {
     final clientSignature = await _loadOptionalImage(
       report.clientSignaturePath,
     );
-    final templateBackground = await _loadTemplateBackground();
-
     document.addPage(
       pw.Page(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: pw.EdgeInsets.zero,
-          buildBackground: templateBackground == null
-              ? null
-              : (context) => pw.FullPage(
-                    ignoreMargins: true,
-                    child: pw.Image(
-                      templateBackground,
-                      fit: pw.BoxFit.fill,
-                    ),
-                  ),
-          buildForeground:
-              _showDraftWatermark ? (context) => _buildDraftWatermark() : null,
         ),
         build: (context) {
           return pw.Padding(
@@ -147,8 +130,6 @@ class ReportPdfService {
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(24),
-          buildForeground:
-              _showDraftWatermark ? (context) => _buildDraftWatermark() : null,
         ),
         build: (context) {
           return [
@@ -189,10 +170,12 @@ class ReportPdfService {
     );
 
     final pdfBytes = await document.save();
-    return _fileService.savePdf(
+    final file = await _fileService.savePdfToCache(
       report: report,
       bytes: pdfBytes,
     );
+    await _fileService.openPdfExternally(file);
+    return file;
   }
 
   pw.Widget _buildHeader(
@@ -505,29 +488,6 @@ class ReportPdfService {
     }
   }
 
-  Future<pw.MemoryImage?> _loadTemplateBackground() async {
-    try {
-      final templateData = await rootBundle.load(_templateAssetPath);
-      final templateBytes = templateData.buffer.asUint8List(
-        templateData.offsetInBytes,
-        templateData.lengthInBytes,
-      );
-
-      await for (final page in Printing.raster(
-        templateBytes,
-        pages: const [0],
-        dpi: 144,
-      )) {
-        final pngBytes = await page.toPng();
-        return pw.MemoryImage(pngBytes);
-      }
-    } catch (_) {
-      return null;
-    }
-
-    return null;
-  }
-
   Future<pw.MemoryImage?> _loadOptionalImage(String? path) async {
     if (path == null || path.trim().isEmpty) {
       return null;
@@ -555,16 +515,4 @@ class ReportPdfService {
     return images;
   }
 
-  pw.Widget _buildDraftWatermark() {
-    return pw.FullPage(
-      ignoreMargins: true,
-      child: pw.Watermark.text(
-        _draftWatermarkLabel,
-        style: pw.TextStyle(
-          color: PdfColor.fromHex('#D7DED9'),
-          fontWeight: pw.FontWeight.bold,
-        ),
-      ),
-    );
-  }
 }

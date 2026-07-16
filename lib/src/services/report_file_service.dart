@@ -75,23 +75,43 @@ class ReportFileService {
     }
   }
 
-  Future<File> savePdf({
+  /// Escribe el PDF en la caché interna de la app (no en Descargas). Es un
+  /// archivo de paso: [openPdfExternally] lo entrega a otra app vía
+  /// FileProvider para que el técnico decida ahí si lo guarda o lo comparte.
+  Future<File> savePdfToCache({
     required MaintenanceReport report,
     required List<int> bytes,
   }) async {
     final generatedAt = DateTime.now();
     final fileName = _buildPdfFileName(report, generatedAt);
-    return saveBytesToDownloads(
-      fileName: fileName,
-      subdirectory: 'Informes Generados',
-      mimeType: 'application/pdf',
-      bytes: bytes,
-      fallbackDirectoryFragments: const ['Informes Generados'],
-      storageUnavailableMessage:
-          'La integración con Descargas no está disponible en este dispositivo.',
-      saveFailedMessage: 'No se pudo guardar el PDF en la carpeta Descargas.',
-      missingPathMessage: 'No se pudo confirmar la ruta del PDF en Descargas.',
-    );
+    final directory = await _ensureCacheDirectory(['reports', 'pdf']);
+    final fileBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    final file = File(p.join(directory.path, fileName));
+    await file.writeAsBytes(fileBytes, flush: true);
+    return file;
+  }
+
+  /// Abre el PDF con el selector nativo de Android ("Abrir con"), para que el
+  /// técnico elija una app instalada para verlo y desde ahí decida si lo
+  /// guarda o lo comparte.
+  Future<void> openPdfExternally(File file) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    try {
+      await _storageChannel.invokeMethod<void>('openPdfExternally', {
+        'path': file.path,
+      });
+    } on MissingPluginException {
+      throw FileSystemException(
+        'La apertura de PDF con otra aplicación no está disponible en este dispositivo.',
+      );
+    } on PlatformException catch (error) {
+      throw FileSystemException(
+        error.message ?? 'No se pudo abrir el PDF con otra aplicación.',
+      );
+    }
   }
 
   Future<File> saveBytesToDownloads({
@@ -164,6 +184,16 @@ class ReportFileService {
   Future<Directory> _ensureDirectory(List<String> fragments) async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final directoryPath = p.joinAll([documentsDirectory.path, ...fragments]);
+    final directory = Directory(directoryPath);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return directory;
+  }
+
+  Future<Directory> _ensureCacheDirectory(List<String> fragments) async {
+    final cacheDirectory = await getTemporaryDirectory();
+    final directoryPath = p.joinAll([cacheDirectory.path, ...fragments]);
     final directory = Directory(directoryPath);
     if (!await directory.exists()) {
       await directory.create(recursive: true);

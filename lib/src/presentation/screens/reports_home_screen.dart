@@ -430,12 +430,23 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
   }
 
   Future<void> _openExistingReport(MaintenanceReport report) async {
+    // Se relee de la base de datos en vez de usar el objeto que ya estaba en
+    // memoria: si una edición anterior de este mismo informe se cerró sin
+    // pasar por "Guardar informe" (p. ej. con el botón atrás), el auto-guardado
+    // de borrador puede haber quedado más adelante en el tiempo que esta lista.
+    // Abrir con el objeto viejo revertiría esos cambios en el próximo guardado.
+    final latestReport =
+        await widget.reportService.getReport(report.uuid) ?? report;
+    if (!mounted) {
+      return;
+    }
+
     final didChange = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => ReportFormScreen(
           reportService: widget.reportService,
           editingSessionService: widget.editingSessionService,
-          initialReport: report,
+          initialReport: latestReport,
         ),
       ),
     );
@@ -477,15 +488,17 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
     });
 
     try {
-      final file = await widget.reportService.generatePdf(report);
+      await widget.reportService.generatePdf(report);
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_buildPdfSavedMessage(file.path)),
-          duration: const Duration(seconds: 4),
+        const SnackBar(
+          content: Text(
+            'PDF generado. Elige una app para verlo, guardarlo o compartirlo.',
+          ),
+          duration: Duration(seconds: 4),
         ),
       );
     } catch (error) {
@@ -584,14 +597,6 @@ class _ReportsHomeScreenState extends State<ReportsHomeScreen> {
         ? 'Informe ${report.uuid.substring(0, 8)}'
         : report.location.trim();
     return recovered ? 'recuperado_$baseName' : baseName;
-  }
-
-  String _buildPdfSavedMessage(String filePath) {
-    final normalizedPath = filePath.replaceAll('\\', '/').toLowerCase();
-    if (normalizedPath.contains('/download/')) {
-      return 'PDF guardado en Descargas/Informes Generados.';
-    }
-    return 'PDF generado correctamente: $filePath';
   }
 
   String _formatDateTime(DateTime value) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'bootstrap/app_bootstrap.dart';
 import 'presentation/screens/locked_screen.dart';
@@ -18,6 +19,13 @@ class MaintenanceReportsApp extends StatelessWidget {
     return MaterialApp(
       title: 'TecnoReport',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('es', 'EC'),
+      supportedLocales: const [Locale('es', 'EC'), Locale('es')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF184A45),

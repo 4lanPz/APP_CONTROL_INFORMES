@@ -10,6 +10,8 @@ dependencies:
   archive: ^3.6.1
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
   package_info_plus: ^8.1.2

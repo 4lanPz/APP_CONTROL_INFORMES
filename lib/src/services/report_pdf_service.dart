@@ -19,6 +19,21 @@ class ReportPdfService {
   static const _companyEmail = 'cfc2.engineering.solutions@hotmail.com';
   static const _companyPhone = '0992795022';
 
+  /// Margen del contenido respecto al borde de la hoja. Debe ser mayor que
+  /// [_pageBorderInset] para que el texto quede dentro del recuadro (no
+  /// encima de la línea).
+  static const _pageMargin = pw.EdgeInsets.all(28);
+
+  /// Cuánto se separa el recuadro decorativo del borde físico de la hoja.
+  static const _pageBorderInset = 14.0;
+
+  /// Fotos por fila en "Evidencia fotográfica". Cada fila es una unidad
+  /// independiente dentro del flujo del documento: si una fila no cabe en lo
+  /// que queda de la página actual, solo esa fila pasa a la siguiente -las
+  /// filas anteriores que sí caben se quedan donde están-, en vez de mandar
+  /// todas las fotos de la sección juntas.
+  static const _photosPerRow = 3;
+
   final ReportFileService _fileService;
 
   Future<File> generateReportPdf(MaintenanceReport report) async {
@@ -36,103 +51,95 @@ class ReportPdfService {
     final clientSignature = await _loadOptionalImage(
       report.clientSignaturePath,
     );
-    document.addPage(
-      pw.Page(
-        pageTheme: pw.PageTheme(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.zero,
-        ),
-        build: (context) {
-          return pw.Padding(
-            padding: const pw.EdgeInsets.all(22),
-            child: pw.Container(
-              padding: const pw.EdgeInsets.all(14),
-              decoration: pw.BoxDecoration(
-                color: const PdfColor(1, 1, 1, 0.92),
-                border: pw.Border.all(
-                  color: PdfColor.fromHex('#184A45'),
-                  width: 1,
-                ),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(report, logoImage),
-                  pw.SizedBox(height: 10),
-                  _buildCompactSectionTitle('Datos generales'),
-                  _buildCompactRow(
-                    leftLabel: 'Fecha',
-                    leftValue: formatDisplayDate(report.serviceDate),
-                    rightLabel: 'Tipo',
-                    rightValue: report.maintenanceType.label,
-                  ),
-                  _buildCompactRow(
-                    leftLabel: 'Ubicación',
-                    leftValue: report.location,
-                    rightLabel: 'Horómetro',
-                    rightValue: report.hourMeter,
-                  ),
-                  pw.SizedBox(height: 8),
-                  _buildCompactSectionTitle('Equipo'),
-                  _buildCompactRow(
-                    leftLabel: 'Marca motor',
-                    leftValue: report.equipment.engineBrand,
-                    rightLabel: 'Modelo motor',
-                    rightValue: report.equipment.engineModel,
-                  ),
-                  _buildCompactRow(
-                    leftLabel: 'Marca alternador',
-                    leftValue: report.equipment.alternatorBrand,
-                    rightLabel: 'Potencia',
-                    rightValue: report.equipment.power,
-                  ),
-                  _buildCompactRow(
-                    leftLabel: 'Serie',
-                    leftValue: report.equipment.serialNumber,
-                    rightLabel: 'Año',
-                    rightValue: report.equipment.manufactureYear,
-                  ),
-                  pw.SizedBox(height: 8),
-                  _buildCompactSectionTitle('Pruebas'),
-                  _buildCompactRow(
-                    leftLabel: 'Voltajes',
-                    leftValue:
-                        'L1 ${report.tests.voltageL1} | L2 ${report.tests.voltageL2} | L3 ${report.tests.voltageL3}',
-                    rightLabel: 'Frecuencia',
-                    rightValue: '${report.tests.frequencyHz} Hz',
-                  ),
-                  _buildCompactRow(
-                    leftLabel: 'Presión aceite',
-                    leftValue: '${report.tests.oilPressurePsi} PSI',
-                    rightLabel: 'Temperatura',
-                    rightValue: '${report.tests.temperatureC} C',
-                  ),
-                  _buildCompactRow(
-                    leftLabel: 'Ruidos / vibraciones',
-                    leftValue:
-                        report.tests.hasAbnormalNoiseOrVibration ? 'Sí' : 'No',
-                    rightLabel: 'Estado sync',
-                    rightValue: report.syncStatus.label,
-                  ),
-                  pw.SizedBox(height: 8),
-                  _buildCompactSectionTitle('Checklist de inspección'),
-                  _buildChecklistTable(report.checklist),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
+    // Un solo MultiPage para todo el informe: si el contenido de una sección
+    // no cabe en la página actual, el motor de PDF continúa en una página
+    // nueva automáticamente (nada se corta en silencio, como pasaba con la
+    // portada de tamaño fijo), y el recuadro decorativo se repite igual en
+    // todas las páginas (antes solo estaba en la primera).
     document.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(24),
+          margin: _pageMargin,
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.all(_pageBorderInset),
+              child: pw.Container(
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor(1, 1, 1, 0.92),
+                  border: pw.Border.all(
+                    color: PdfColor.fromHex('#184A45'),
+                    width: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         build: (context) {
           return [
+            _buildHeader(report, logoImage),
+            pw.SizedBox(height: 10),
+            _buildCompactSectionTitle('Datos generales'),
+            _buildCompactRow(
+              leftLabel: 'Fecha',
+              leftValue: formatDisplayDate(report.serviceDate),
+              rightLabel: 'Tipo',
+              rightValue: report.maintenanceType.label,
+            ),
+            _buildCompactRow(
+              leftLabel: 'Ubicación',
+              leftValue: report.location,
+              rightLabel: 'Horómetro',
+              rightValue: report.hourMeter,
+            ),
+            pw.SizedBox(height: 8),
+            _buildCompactSectionTitle('Equipo'),
+            _buildCompactRow(
+              leftLabel: 'Marca motor',
+              leftValue: report.equipment.engineBrand,
+              rightLabel: 'Modelo motor',
+              rightValue: report.equipment.engineModel,
+            ),
+            _buildCompactRow(
+              leftLabel: 'Marca alternador',
+              leftValue: report.equipment.alternatorBrand,
+              rightLabel: 'Potencia',
+              rightValue: report.equipment.power,
+            ),
+            _buildCompactRow(
+              leftLabel: 'Serie',
+              leftValue: report.equipment.serialNumber,
+              rightLabel: 'Año',
+              rightValue: report.equipment.manufactureYear,
+            ),
+            pw.SizedBox(height: 8),
+            _buildCompactSectionTitle('Pruebas'),
+            _buildCompactRow(
+              leftLabel: 'Voltajes',
+              leftValue:
+                  'L1 ${report.tests.voltageL1} | L2 ${report.tests.voltageL2} | L3 ${report.tests.voltageL3}',
+              rightLabel: 'Frecuencia',
+              rightValue: '${report.tests.frequencyHz} Hz',
+            ),
+            _buildCompactRow(
+              leftLabel: 'Presión aceite',
+              leftValue: '${report.tests.oilPressurePsi} PSI',
+              rightLabel: 'Temperatura',
+              rightValue: '${report.tests.temperatureC} C',
+            ),
+            _buildCompactRow(
+              leftLabel: 'Ruidos / vibraciones',
+              leftValue:
+                  report.tests.hasAbnormalNoiseOrVibration ? 'Sí' : 'No',
+              rightLabel: 'Estado sync',
+              rightValue: report.syncStatus.label,
+            ),
+            pw.SizedBox(height: 8),
+            _buildCompactSectionTitle('Checklist de inspección'),
+            _buildChecklistTable(report.checklist),
+            pw.SizedBox(height: 12),
             _buildSectionTitle('Actividades y repuestos'),
             _buildParagraph(
               'Descripción de actividades / repuestos',
@@ -156,9 +163,9 @@ class ReportPdfService {
             ),
             pw.SizedBox(height: 12),
             _buildSectionTitle('Evidencia fotográfica'),
-            _buildPhotoSection('Antes del Servicio', beforeImages),
+            ..._buildPhotoSection('Antes del Servicio', beforeImages),
             pw.SizedBox(height: 10),
-            _buildPhotoSection('Estado Final', afterImages),
+            ..._buildPhotoSection('Estado Final', afterImages),
             pw.SizedBox(height: 18),
             _buildSignatureRow(
               technicianSignature: technicianSignature,
@@ -373,30 +380,51 @@ class ReportPdfService {
     );
   }
 
-  pw.Widget _buildPhotoSection(String title, List<pw.MemoryImage> images) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          title,
-          style: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            fontSize: 11,
+  /// Devuelve cada fila de fotos como un elemento independiente de la lista
+  /// (en vez de un único bloque `Wrap` con todas las imágenes) para que el
+  /// `MultiPage` pueda repartirlas entre páginas fila por fila: la página
+  /// actual se llena con las filas completas que quepan y el resto continúa
+  /// en la siguiente, sin dejar espacio en blanco ni mandar todas las fotos
+  /// juntas a la página nueva.
+  List<pw.Widget> _buildPhotoSection(
+    String title,
+    List<pw.MemoryImage> images,
+  ) {
+    final widgets = <pw.Widget>[
+      pw.Text(
+        title,
+        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+      ),
+      pw.SizedBox(height: 8),
+    ];
+
+    if (images.isEmpty) {
+      widgets.add(_buildEmptyPhotoCard());
+      return widgets;
+    }
+
+    for (var start = 0; start < images.length; start += _photosPerRow) {
+      final end = (start + _photosPerRow < images.length)
+          ? start + _photosPerRow
+          : images.length;
+      final rowImages = images.sublist(start, end);
+
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 8),
+          child: pw.Row(
+            children: [
+              for (var i = 0; i < rowImages.length; i++) ...[
+                if (i > 0) pw.SizedBox(width: 8),
+                _buildPhotoCard(image: rowImages[i]),
+              ],
+            ],
           ),
         ),
-        pw.SizedBox(height: 8),
-        if (images.isEmpty)
-          _buildEmptyPhotoCard()
-        else
-          pw.Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: images
-                .map((image) => _buildPhotoCard(image: image))
-                .toList(growable: false),
-          ),
-      ],
-    );
+      );
+    }
+
+    return widgets;
   }
 
   pw.Widget _buildPhotoCard({
